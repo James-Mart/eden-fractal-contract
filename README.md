@@ -8,27 +8,10 @@ This is a smart contract used to facilitate some activities related to the [Eden
 
 # Contributing
 
-To contribute to this smart contract for the [Eden fractal](https://www.edenfractal.com), follow the below instructions.
+## How to contribute
+
+To contribute to this smart contract for the [Eden fractal](https://www.edenfractal.com), follow the instructions at the [EOS Power Network - Open EOS Contract](https://github.com/EOSPowerNetwork/vscode-open-eos-contract) repo.
 Quick intro video to this tool can be found [here](https://www.youtube.com/watch?v=YZmTEuOdffs).
-
-## Prerequisites
-
-1. VSCode installed on your development PC
-2. [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) VSCode extension has been installed
-
-## How to use this repo
-
-1. Create a folder on your pc called eden-fractal-contract.
-2. Clone this repo into that directory (from within the new directory, it's `git clone <repo_link> .`)
-3. Open in VSCode
-4. Run the ```Remote-Containers: Rebuild and Reopen in Container``` command in VSCode
-
-VSCode will relaunch, connecting to a new docker container with the EOS contract development environment already configured, and the contract will be ready to work on./
-
-## Misc notes
-
-When VSCode closes, the container stops. The data within the container is not accessible, as it's stored in an unnamed volume mounted on your PC, only accessible through the docker container launched by VSCode.
-Any changes you make to the contract will only persist if you commit and push them to github.
 
 ## Contributing rules
 
