@@ -1,0 +1,76 @@
+{
+    "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "testsuite",
+            "type": "promptString",
+            "default": "[mytestsuite]",
+            "description": "Enter test suite key (Example: \"[MyTestSuite]\""
+        }
+    ],
+    "tasks": [
+      // Compilation
+      {
+        "label": "make",
+        "type": "shell",
+        "command": "cd build && cmake `clsdk-cmake-args` .. && make -j $(nproc)",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "options": {
+            "statusbar": {
+                "label" : "$(diff-insert) Build",
+                "tooltip": "CMake build"
+            }
+        }
+      },
+      {
+        "label": "make and test",
+        "type": "shell",
+        "command": "cd build && cmake `clsdk-cmake-args` .. && make -j $(nproc) && ctest -V",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "options": {
+            "statusbar": {
+                "label" : "$(diff-insert) Build and test",
+                "tooltip": "CMake build and invoke Cltester"
+            }
+        }
+      },
+      {
+        "label": "test",
+        "type": "shell",
+        "command": "cd build && ctest -V",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "options": {
+            "statusbar": {
+                "label" : "$(diff-insert) Test",
+                "tooltip": "Invoke Cltester"
+            }
+        }
+      },
+      {
+          "label": "testspecific",
+          "type": "shell",
+          "command": "cd build && cltester -v artifacts/test-eden_fractal.wasm ${input:testsuite} -s ",
+          "args": [],
+          "group": {
+              "kind": "build",
+              "isDefault": true
+          },
+          "options": {
+              "statusbar": {
+                  "label": "$(diff-insert) Test Suite",
+                  "tooltip": "Invoke Cltester on a specific test suite"
+              }
+          }
+      }
+    ]
+  }
+  
