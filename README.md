@@ -4,6 +4,7 @@ This is a smart contract used to facilitate some activities related to the [Eden
 
 * setagreement - Used to store the Eden fractal contributor agreement. Also allows the agreement to be updated and increments a version number.
 * sign - Used by community members to sign the agreement, which is an explicit agreement to abide by the mission and rules set forth therein.
+* usign - Used by community members to unsign the agreement, which indicates the member no longer agrees to abide by the mission and rules set forth therein. Also frees ram used to store the signature.
 
 # Contributing
 
