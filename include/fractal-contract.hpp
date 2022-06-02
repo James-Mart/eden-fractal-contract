@@ -80,6 +80,10 @@ namespace eden_fractal {
        private:
         void sub_balance(const name& owner, const asset& value);
         void add_balance(const name& owner, const asset& value, const name& ram_payer);
+
+        void validate_quantity(const asset& quantity);
+        void validate_memo(const string& memo);
+        void validate_symbol(const symbol& symbol);
     };
 
     // clang-format off

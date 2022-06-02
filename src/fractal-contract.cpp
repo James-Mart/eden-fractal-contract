@@ -15,6 +15,7 @@ namespace {
     // Some compile-time configuration
     constexpr std::string_view ticker{"EDEN"};
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
+    constexpr symbol eden_symbol{ticker, 4};
 }  // namespace
 
 fractal_contract::fractal_contract(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds) {}
@@ -64,7 +65,7 @@ void fractal_contract::create()
 {
     // Anyone is allows to call this action.
     // It can only be called once.
-    auto new_asset = asset{max_supply, symbol{ticker, 4}};
+    auto new_asset = asset{max_supply, eden_symbol};
 
     auto sym = new_asset.symbol;
     check(new_asset.is_valid(), "invalid supply");
@@ -82,21 +83,17 @@ void fractal_contract::create()
 
 void fractal_contract::issue(const name& to, const asset& quantity, const string& memo)
 {
-    auto sym = quantity.symbol;
-    check(sym.is_valid(), "invalid symbol name");
-    check(memo.size() <= 256, "memo has more than 256 bytes");
+    // Since this contract is the registered eden token "issuer", only this contract
+    //   is able to issue tokens. Anyone can try calling this, but it will fail.
+    check(to == get_self(), "tokens can only be issued to issuer account");
+    require_auth(get_self());
 
-    stats statstable(get_self(), sym.code().raw());
-    auto existing = statstable.find(sym.code().raw());
-    check(existing != statstable.end(), "token with symbol does not exist, create token before issue");
-    const auto& st = *existing;
-    check(to == st.issuer, "tokens can only be issued to issuer account");
+    validate_quantity(quantity);
+    validate_memo(memo);
 
-    require_auth(st.issuer);
-    check(quantity.is_valid(), "invalid quantity");
-    check(quantity.amount > 0, "must issue positive quantity");
-
-    check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
+    auto sym = quantity.symbol.code();
+    stats statstable(get_self(), sym.raw());
+    const auto& st = statstable.get(sym.raw());
     check(quantity.amount <= st.max_supply.amount - st.supply.amount, "quantity exceeds available supply");
 
     statstable.modify(st, same_payer, [&](auto& s) { s.supply += quantity; });
@@ -106,20 +103,14 @@ void fractal_contract::issue(const name& to, const asset& quantity, const string
 
 void fractal_contract::retire(const asset& quantity, const string& memo)
 {
-    auto sym = quantity.symbol;
-    check(sym.is_valid(), "invalid symbol name");
-    check(memo.size() <= 256, "memo has more than 256 bytes");
+    require_auth(get_self());
 
-    stats statstable(get_self(), sym.code().raw());
-    auto existing = statstable.find(sym.code().raw());
-    check(existing != statstable.end(), "token with symbol does not exist");
-    const auto& st = *existing;
+    validate_quantity(quantity);
+    validate_memo(memo);
 
-    require_auth(st.issuer);
-    check(quantity.is_valid(), "invalid quantity");
-    check(quantity.amount > 0, "must retire positive quantity");
-
-    check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
+    auto sym = quantity.symbol.code();
+    stats statstable(get_self(), sym.raw());
+    const auto& st = statstable.get(sym.raw());
 
     statstable.modify(st, same_payer, [&](auto& s) { s.supply -= quantity; });
 
@@ -128,25 +119,45 @@ void fractal_contract::retire(const asset& quantity, const string& memo)
 
 void fractal_contract::transfer(const name& from, const name& to, const asset& quantity, const string& memo)
 {
-    check(from != to, "cannot transfer to self");
     require_auth(from);
+
+    validate_quantity(quantity);
+    validate_memo(memo);
+
+    check(from != to, "cannot transfer to self");
     check(is_account(to), "to account does not exist");
-    auto sym = quantity.symbol.code();
-    stats statstable(get_self(), sym.raw());
-    const auto& st = statstable.get(sym.raw());
 
     require_recipient(from);
     require_recipient(to);
-
-    check(quantity.is_valid(), "invalid quantity");
-    check(quantity.amount > 0, "must transfer positive quantity");
-    check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
-    check(memo.size() <= 256, "memo has more than 256 bytes");
 
     auto payer = has_auth(to) ? to : from;
 
     sub_balance(from, quantity);
     add_balance(to, quantity, payer);
+}
+
+void fractal_contract::open(const name& owner, const symbol& symbol, const name& ram_payer)
+{
+    require_auth(ram_payer);
+
+    validate_symbol(symbol);
+
+    check(is_account(owner), "owner account does not exist");
+    accounts acnts(get_self(), owner.value);
+    check(acnts.find(symbol.code().raw()) == acnts.end(), "specified owner already holds a balance");
+
+    acnts.emplace(ram_payer, [&](auto& a) { a.balance = asset{0, symbol}; });
+}
+
+void fractal_contract::close(const name& owner, const symbol& symbol)
+{
+    require_auth(owner);
+
+    accounts acnts(get_self(), owner.value);
+    auto it = acnts.find(symbol.code().raw());
+    check(it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect.");
+    check(it->balance.amount == 0, "Cannot close because the balance is not zero.");
+    acnts.erase(it);
 }
 
 void fractal_contract::sub_balance(const name& owner, const asset& value)
@@ -171,32 +182,22 @@ void fractal_contract::add_balance(const name& owner, const asset& value, const 
     }
 }
 
-void fractal_contract::open(const name& owner, const symbol& symbol, const name& ram_payer)
+void fractal_contract::validate_symbol(const symbol& symbol)
 {
-    require_auth(ram_payer);
-
-    check(is_account(owner), "owner account does not exist");
-
-    auto sym_code_raw = symbol.code().raw();
-    stats statstable(get_self(), sym_code_raw);
-    const auto& st = statstable.get(sym_code_raw, "symbol does not exist");
-    check(st.supply.symbol == symbol, "symbol precision mismatch");
-
-    accounts acnts(get_self(), owner.value);
-    auto it = acnts.find(sym_code_raw);
-    if (it == acnts.end()) {
-        acnts.emplace(ram_payer, [&](auto& a) { a.balance = asset{0, symbol}; });
-    }
+    check(symbol.value == eden_symbol.value, "invalid symbol");
+    check(symbol == eden_symbol, "symbol precision mismatch");
 }
 
-void fractal_contract::close(const name& owner, const symbol& symbol)
+void fractal_contract::validate_quantity(const asset& quantity)
 {
-    require_auth(owner);
-    accounts acnts(get_self(), owner.value);
-    auto it = acnts.find(symbol.code().raw());
-    check(it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect.");
-    check(it->balance.amount == 0, "Cannot close because the balance is not zero.");
-    acnts.erase(it);
+    validate_symbol(quantity.symbol);
+    check(quantity.is_valid(), "invalid quantity");
+    check(quantity.amount > 0, "quantity must be positive");
+}
+
+void fractal_contract::validate_memo(const string& memo)
+{
+    check(memo.size() <= 256, "memo has more than 256 bytes");
 }
 
 EOSIO_ACTION_DISPATCHER(eden_fractal::actions)
