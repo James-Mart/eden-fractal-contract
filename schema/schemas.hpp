@@ -13,11 +13,11 @@ namespace eden_fractal {
     };
     EOSIO_REFLECT(Agreement, agreement, versionNr);
 
-    struct Signatures {
+    struct Signature {
         eosio::name signer;
         uint64_t primary_key() const { return signer.value; }
     };
-    EOSIO_REFLECT(Signatures, signer);
+    EOSIO_REFLECT(Signature, signer);
 
     // Token-related
     struct account {
@@ -35,5 +35,21 @@ namespace eden_fractal {
         uint64_t primary_key() const { return supply.symbol.code().raw(); }
     };
     EOSIO_REFLECT(currency_stats, supply, max_supply, issuer);
+
+    // Ranking-related
+    struct RewardConfig {
+        int64_t eos_reward_amt;
+        uint8_t fib_offset;
+    };
+    EOSIO_REFLECT(RewardConfig, eos_reward_amt, fib_offset);
+
+    struct GroupRanking {
+        std::vector<eosio::name> ranking;
+    };
+    EOSIO_REFLECT(GroupRanking, ranking);
+    struct AllRankings {
+        std::vector<GroupRanking> allRankings;
+    };
+    EOSIO_REFLECT(AllRankings, allRankings);
 
 }  // namespace eden_fractal

@@ -10,18 +10,11 @@
 #include "errors.hpp"
 #include "schemas.hpp"
 
-namespace eden_fractal {
-    using eden_fractal::Agreement;
-    using eosio::asset;
-    using eosio::check;
-    using eosio::contract;
-    using eosio::datastream;
-    using eosio::name;
-    using eosio::print;
-    using eosio::symbol;
-    using eosio::symbol_code;
-    using std::string;
+using namespace eosio;
+using std::string;
+using std::vector;
 
+namespace eden_fractal {
     // Ricardian contracts live in ricardian/fractal_contract-ricardian.cpp
     extern const char* ricardian_clause;
 
@@ -36,7 +29,11 @@ namespace eden_fractal {
     extern const char* open_ricardian;
     extern const char* close_ricardian;
 
-    // The account this contract is normally deployed to
+    extern const char* eosrewardamt_ricardian;
+    extern const char* fiboffset_ricardian;
+    extern const char* submitranks_ricardian;
+
+    // The account at which this contract is deployed
     inline constexpr auto default_contract_account = "fractal.eden"_n;
 
     class fractal_contract : public contract {
@@ -44,9 +41,10 @@ namespace eden_fractal {
         using eosio::contract::contract;
 
         using AgreementSingleton = eosio::singleton<"agreement"_n, Agreement>;
-        using SignersTable = eosio::multi_index<"signatures"_n, Signatures>;
+        using SignersTable = eosio::multi_index<"signatures"_n, Signature>;
         using accounts = eosio::multi_index<"accounts"_n, account>;
         using stats = eosio::multi_index<"stat"_n, currency_stats>;
+        using RewardConfigSingleton = eosio::singleton<"rewardconf"_n, RewardConfig>;
 
         fractal_contract(name receiver, name code, datastream<const char*> ds);
 
@@ -63,13 +61,18 @@ namespace eden_fractal {
         void open(const name& owner, const symbol& symbol, const name& ram_payer);
         void close(const name& owner, const symbol& symbol);
 
+        // Ranking-related actions (may only be called by admins)
+        void eosrewardamt(const asset& quantity);
+        void fiboffset(uint8_t offset);
+        void submitranks(const AllRankings& ranks);
+
+        // Tester/contract interface to simplify token queries
         static asset get_supply(const name& token_contract_account, const symbol_code& sym_code)
         {
             stats statstable(token_contract_account, sym_code.raw());
             const auto& st = statstable.get(sym_code.raw());
             return st.supply;
         }
-
         static asset get_balance(const name& token_contract_account, const name& owner, const symbol_code& sym_code)
         {
             accounts accountstable(token_contract_account, owner.value);
@@ -84,6 +87,8 @@ namespace eden_fractal {
         void validate_quantity(const asset& quantity);
         void validate_memo(const string& memo);
         void validate_symbol(const symbol& symbol);
+
+        void require_admin_auth();
     };
 
     // clang-format off
@@ -98,7 +103,12 @@ namespace eden_fractal {
                   action(retire, quantity, memo, ricardian_contract(retire_ricardian)),
                   action(transfer, from, to, quantity, memo, ricardian_contract(transfer_ricardian)),
                   action(open, owner, symbol, ram_payer, ricardian_contract(open_ricardian)),
-                  action(close, owner, symbol, ricardian_contract(close_ricardian))
+                  action(close, owner, symbol, ricardian_contract(close_ricardian)),
+
+                  action(eosrewardamt, quantity, ricardian_contract(eosrewardamt_ricardian)),
+                  action(fiboffset, offset, ricardian_contract(fiboffset_ricardian)),
+                  action(submitranks, ranks, ricardian_contract(submitranks_ricardian))
+                  
     )
     // clang-format on
 

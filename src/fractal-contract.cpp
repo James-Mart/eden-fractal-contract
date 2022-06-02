@@ -6,24 +6,33 @@
 
 #include "fractal-contract.hpp"
 
-using namespace eosio;
 using namespace eden_fractal;
-using namespace errors;
-using std::string;
-
+using namespace eden_fractal::errors;
 namespace {
+
     // Some compile-time configuration
+    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n};
+
     constexpr std::string_view ticker{"EDEN"};
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
     constexpr symbol eden_symbol{ticker, 4};
+    constexpr symbol eos_symbol{"EOS", 4};
+
+    const auto defaultRewardConfig = RewardConfig{.eos_reward_amt = 0, .fib_offset = 8};
+    constexpr auto min_group_size = size_t{5};
+    constexpr auto max_group_size = size_t{6};
+
+    // Other helpers
+    auto fib(auto index) -> decltype(index)
+    {  //
+        return (index <= 1) ? index : fib(index - 1) + fib(index - 2);
+    };
 }  // namespace
 
 fractal_contract::fractal_contract(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds) {}
 
 void fractal_contract::setagreement(const std::string& agreement)
 {
-    check(has_auth("dan"_n) || has_auth("james.vr"_n), setAgreementAuth.data());
-
     AgreementSingleton singleton(default_contract_account, default_contract_account.value);
     auto record = singleton.get_or_default(Agreement{});
     check(record.versionNr != std::numeric_limits<decltype(record.versionNr)>::max(), "version nr overflow");
@@ -88,6 +97,7 @@ void fractal_contract::issue(const name& to, const asset& quantity, const string
     check(to == get_self(), "tokens can only be issued to issuer account");
     require_auth(get_self());
 
+    validate_symbol(quantity.symbol);
     validate_quantity(quantity);
     validate_memo(memo);
 
@@ -105,6 +115,7 @@ void fractal_contract::retire(const asset& quantity, const string& memo)
 {
     require_auth(get_self());
 
+    validate_symbol(quantity.symbol);
     validate_quantity(quantity);
     validate_memo(memo);
 
@@ -121,6 +132,7 @@ void fractal_contract::transfer(const name& from, const name& to, const asset& q
 {
     require_auth(from);
 
+    validate_symbol(quantity.symbol);
     validate_quantity(quantity);
     validate_memo(memo);
 
@@ -160,6 +172,38 @@ void fractal_contract::close(const name& owner, const symbol& symbol)
     acnts.erase(it);
 }
 
+void fractal_contract::eosrewardamt(const asset& quantity)
+{
+    require_admin_auth();
+
+    RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
+    auto record = rewardConfigTable.get_or_default(defaultRewardConfig);
+
+    validate_quantity(quantity);
+    check(quantity.symbol == eos_symbol, requiresEosToken.data());
+
+    record.eos_reward_amt = quantity.amount;
+    rewardConfigTable.set(record, get_self());
+}
+
+void fractal_contract::fiboffset(uint8_t offset)
+{
+    require_admin_auth();
+
+    RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
+    auto record = rewardConfigTable.get_or_default(defaultRewardConfig);
+
+    record.fib_offset = offset;
+    rewardConfigTable.set(record, get_self());
+}
+
+void fractal_contract::submitranks(const AllRankings& ranks)
+{
+    require_admin_auth();
+
+    // TODO
+}
+
 void fractal_contract::sub_balance(const name& owner, const asset& value)
 {
     accounts from_acnts(get_self(), owner.value);
@@ -190,7 +234,6 @@ void fractal_contract::validate_symbol(const symbol& symbol)
 
 void fractal_contract::validate_quantity(const asset& quantity)
 {
-    validate_symbol(quantity.symbol);
     check(quantity.is_valid(), "invalid quantity");
     check(quantity.amount > 0, "quantity must be positive");
 }
@@ -200,15 +243,23 @@ void fractal_contract::validate_memo(const string& memo)
     check(memo.size() <= 256, "memo has more than 256 bytes");
 }
 
+void fractal_contract::require_admin_auth()
+{
+    bool hasAuth = std::any_of(admins.begin(), admins.end(), [](auto& admin) { return has_auth(admin); });
+    check(hasAuth, requiresAdmin.data());
+}
+
 EOSIO_ACTION_DISPATCHER(eden_fractal::actions)
 
 // clang-format off
 EOSIO_ABIGEN(actions(eden_fractal::actions), 
     table("agreement"_n, eden_fractal::Agreement), 
-    table("signatures"_n, eden_fractal::Signatures),
+    table("signatures"_n, eden_fractal::Signature),
 
     table("accounts"_n, eden_fractal::account),
     table("stat"_n, eden_fractal::currency_stats),
+
+    table("rewardconf"_n, eden_fractal::RewardConfig),
 
     ricardian_clause("Fractal contract ricardian clause", eden_fractal::ricardian_clause)
 )

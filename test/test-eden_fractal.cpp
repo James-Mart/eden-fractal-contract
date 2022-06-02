@@ -64,7 +64,7 @@ SCENARIO("Testing setagreement")
         THEN("Alice cannot call the setagreement action")
         {
             auto trace = alice.trace<actions::setagreement>("test");
-            CHECK(failedWith(trace, setAgreementAuth));
+            CHECK(failedWith(trace, requiresAdmin));
         }
 
         THEN("Dan can call the setagreement action")
@@ -152,3 +152,8 @@ SCENARIO("Testing sign and unsign")
         }
     }
 }
+
+// Todo
+// SCENARIO("Token tests")
+// SCENARIO("Reward customization")
+// SCENARIO("Rank submission")
