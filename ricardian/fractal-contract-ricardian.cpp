@@ -17,7 +17,7 @@ The Eden Fractal is similar to a fractal as defined in the Fractally whitepaper.
 )";
 
 const char* eden_fractal::create_ricardian = R"(
-Allows `issuer` account to create a token in supply of `maximum_supply`.
+This contract does not allow for the creation of arbitrary assets, it only manages the Eden token.
 )";
 const char* eden_fractal::issue_ricardian = R"(
 Issues (mints) to `to` account a `quantity` of tokens.

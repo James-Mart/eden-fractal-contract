@@ -11,6 +11,12 @@ using namespace eden_fractal;
 using namespace errors;
 using std::string;
 
+namespace {
+    // Some compile-time configuration
+    constexpr std::string_view ticker{"EDEN"};
+    constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
+}  // namespace
+
 fractal_contract::fractal_contract(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds) {}
 
 void fractal_contract::setagreement(const std::string& agreement)
@@ -54,22 +60,23 @@ void fractal_contract::unsign(const name& signer)
 
 /*** Token-related ***/
 
-void fractal_contract::create(const name& issuer, const asset& maximum_supply)
+void fractal_contract::create()
 {
-    require_auth(get_self());
+    // Anyone is allows to call this action.
+    // It can only be called once.
+    auto new_asset = asset{max_supply, symbol{ticker, 4}};
 
-    auto sym = maximum_supply.symbol;
-    check(maximum_supply.is_valid(), "invalid supply");
-    check(maximum_supply.amount > 0, "max-supply must be positive");
+    auto sym = new_asset.symbol;
+    check(new_asset.is_valid(), "invalid supply");
+    check(new_asset.amount > 0, "max-supply must be positive");
 
     stats statstable(get_self(), sym.code().raw());
-    auto existing = statstable.find(sym.code().raw());
-    check(existing == statstable.end(), "token with symbol already exists");
+    check(std::distance(statstable.begin(), statstable.end()) == 0, tokenAlreadyCreated);
 
     statstable.emplace(get_self(), [&](auto& s) {
-        s.supply.symbol = maximum_supply.symbol;
-        s.max_supply = maximum_supply;
-        s.issuer = issuer;
+        s.supply.symbol = new_asset.symbol;
+        s.max_supply = new_asset;
+        s.issuer = get_self();
     });
 }
 

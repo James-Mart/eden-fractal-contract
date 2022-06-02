@@ -56,7 +56,7 @@ namespace eden_fractal {
         void unsign(const name& signer);
 
         // Token-related actions
-        void create(const name& issuer, const asset& maximum_supply);
+        void create();
         void issue(const name& to, const asset& quantity, const string& memo);
         void retire(const asset& quantity, const string& memo);
         void transfer(const name& from, const name& to, const asset& quantity, const string& memo);
@@ -89,7 +89,7 @@ namespace eden_fractal {
                   action(sign, signer, ricardian_contract(sign_ricardian)),
                   action(unsign, signer, ricardian_contract(unsign_ricardian)),
 
-                  action(create, issuer, maximum_supply, ricardian_contract(create_ricardian)),
+                  action(create, ricardian_contract(create_ricardian)),
                   action(issue, to, quantity, memo, ricardian_contract(issue_ricardian)),
                   action(retire, quantity, memo, ricardian_contract(retire_ricardian)),
                   action(transfer, from, to, quantity, memo, ricardian_contract(transfer_ricardian)),
