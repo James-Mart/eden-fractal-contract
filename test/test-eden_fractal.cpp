@@ -1,33 +1,32 @@
 #include <eosio/tester.hpp>
 #include <token/token.hpp>
 
-#include "agreement-contract.hpp"
+#include "fractal-contract.hpp"
 
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
 using namespace eosio;
 using namespace eden_fractal;
+using namespace eden_fractal::errors;
 
-bool succeeded(const transaction_trace& trace) {
-    if  (trace.status == transaction_status::executed)
-    {
+bool succeeded(const transaction_trace& trace)
+{
+    if (trace.status == transaction_status::executed) {
         return true;
     }
-    else
-    {
+    else {
         UNSCOPED_INFO("Was supposed to succeed, but failed with : " + trace.except.value());
         return false;
     }
 }
 
-bool failedWith(const transaction_trace& trace, std::string_view err) {
-    if (trace.except->find(err.data()) != std::string::npos)
-    {
+bool failedWith(const transaction_trace& trace, std::string_view err)
+{
+    if (trace.except->find(err.data()) != std::string::npos) {
         return true;
     }
-    else
-    {
+    else {
         auto intendedErr = std::string(err.data());
         UNSCOPED_INFO("Was supposed to fail with: " + intendedErr + " but it failed with: " + trace.except.value());
         return false;
@@ -44,8 +43,7 @@ void setup_installMyContract(test_chain& t)
 // Setup function to add some accounts to the chain
 void setup_createAccounts(test_chain& t)
 {
-    for (auto user : {"alice"_n, "dan"_n})
-    {
+    for (auto user : {"alice"_n, "dan"_n}) {
         t.create_account(user);
     }
 }
@@ -82,7 +80,7 @@ SCENARIO("Testing setagreement")
 
             THEN("The agreement matches what he set")
             {
-                auto agreementSingleton = agreement_contract::AgreementSingleton(default_contract_account, default_contract_account.value);
+                auto agreementSingleton = fractal_contract::AgreementSingleton(default_contract_account, default_contract_account.value);
                 auto agreement = agreementSingleton.get_or_default();
                 CHECK(agreement.agreement == agreementStr);
             }
@@ -116,7 +114,6 @@ SCENARIO("Testing sign and unsign")
             {
                 auto trace = alice.trace<actions::unsign>("alice"_n);
                 CHECK(failedWith(trace, notSigned));
-
             }
             THEN("Alice can sign the agreement")
             {
@@ -131,7 +128,7 @@ SCENARIO("Testing sign and unsign")
                 }
                 AND_THEN("Her signature is stored")
                 {
-                    auto signerTable = agreement_contract::SignersTable(default_contract_account, default_contract_account.value);
+                    auto signerTable = fractal_contract::SignersTable(default_contract_account, default_contract_account.value);
                     bool sigExists = signerTable.find("alice"_n.value) != signerTable.end();
                     CHECK(sigExists);
                 }
@@ -146,7 +143,7 @@ SCENARIO("Testing sign and unsign")
 
                     AND_THEN("The signature no longer exists")
                     {
-                        auto signerTable = agreement_contract::SignersTable(default_contract_account, default_contract_account.value);
+                        auto signerTable = fractal_contract::SignersTable(default_contract_account, default_contract_account.value);
                         bool sigDNE = signerTable.find("alice"_n.value) == signerTable.end();
                         CHECK(sigDNE);
                     }
@@ -154,5 +151,4 @@ SCENARIO("Testing sign and unsign")
             }
         }
     }
-
 }

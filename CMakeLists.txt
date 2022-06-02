@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 # Main variable configurations - Customized with each project
 ## Basic configuration -- Only set the varables in this section
 set(PROJ eden_fractal)
-list(APPEND FILENAMES "agreement-contract")
+list(APPEND FILENAMES "fractal-contract")
 ###################################################################
 
 
