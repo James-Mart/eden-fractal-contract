@@ -15,6 +15,7 @@ using std::string;
 using std::vector;
 
 namespace eden_fractal {
+
     // Ricardian contracts live in ricardian/fractal_contract-ricardian.cpp
     extern const char* ricardian_clause;
 
@@ -35,6 +36,10 @@ namespace eden_fractal {
 
     // The account at which this contract is deployed
     inline constexpr auto default_contract_account = "fractal.eden"_n;
+
+    constexpr std::string_view eden_ticker{"EDEN"};
+    constexpr symbol eos_symbol{"EOS", 4};
+    constexpr symbol eden_symbol{eden_ticker, 4};
 
     class fractal_contract : public contract {
        public:

@@ -12,9 +12,11 @@ namespace eden_fractal {
 
         // Token-related
         constexpr std::string_view tokenAlreadyCreated = "Token already created";
+        constexpr std::string_view untradeable = "Token currently untradeable";
 
         // Ranking related
         constexpr std::string_view requiresEosToken = "Quantity must be denominated in EOS";
+        constexpr std::string_view too_few_groups = "Too few groups, at least two groups must be submitted.";
         constexpr std::string_view group_too_small = "One of the groups is too small. Minimum group size = 5.";
         constexpr std::string_view group_too_large = "One of the groups is too large. Maximum group size = 6.";
 

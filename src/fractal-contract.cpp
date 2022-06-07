@@ -2,7 +2,10 @@
 #include <eosio/eosio.hpp>
 #include <eosio/name.hpp>
 #include <limits>
+#include <map>
+#include <numeric>
 #include <string>
+#include <token/token.hpp>
 
 #include "fractal-contract.hpp"
 
@@ -11,28 +14,36 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n};
+    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n};
 
-    constexpr std::string_view ticker{"EDEN"};
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
-    constexpr symbol eden_symbol{ticker, 4};
-    constexpr symbol eos_symbol{"EOS", 4};
 
-    const auto defaultRewardConfig = RewardConfig{.eos_reward_amt = 0, .fib_offset = 8};
+    const auto defaultRewardConfig = RewardConfig{.eos_reward_amt = (int64_t)100e4, .fib_offset = 5};
+    constexpr auto min_groups = size_t{2};
     constexpr auto min_group_size = size_t{5};
     constexpr auto max_group_size = size_t{6};
+
+    constexpr std::string_view edenTransferMemo = "Eden fractal respect distribution";
+    constexpr std::string_view eosTransferMemo = "Eden fractal participation $EOS reward";
+
+    // Coefficients of 6th order poly where p is phi (ratio between adjacent fibonacci numbers)
+    // xp^0 + xp^1 ...
+    constexpr std::array<double, max_group_size> polyCoeffs{1, 1.618, 2.617924, 4.235801032, 6.85352607, 11.08900518};
 
     // Other helpers
     auto fib(auto index) -> decltype(index)
     {  //
         return (index <= 1) ? index : fib(index - 1) + fib(index - 2);
     };
+
 }  // namespace
 
 fractal_contract::fractal_contract(name receiver, name code, datastream<const char*> ds) : contract(receiver, code, ds) {}
 
 void fractal_contract::setagreement(const std::string& agreement)
 {
+    require_admin_auth();
+
     AgreementSingleton singleton(default_contract_account, default_contract_account.value);
     auto record = singleton.get_or_default(Agreement{});
     check(record.versionNr != std::numeric_limits<decltype(record.versionNr)>::max(), "version nr overflow");
@@ -130,6 +141,7 @@ void fractal_contract::retire(const asset& quantity, const string& memo)
 
 void fractal_contract::transfer(const name& from, const name& to, const asset& quantity, const string& memo)
 {
+    check(from == get_self(), untradeable.data());
     require_auth(from);
 
     validate_symbol(quantity.symbol);
@@ -199,9 +211,62 @@ void fractal_contract::fiboffset(uint8_t offset)
 
 void fractal_contract::submitranks(const AllRankings& ranks)
 {
+    // This action calculates both types of rewards: EOS rewards, and the new token rewards.
+    constexpr auto eosPrecisionMult = 1e4;
     require_admin_auth();
 
-    // TODO
+    RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
+    auto rewardConfig = rewardConfigTable.get_or_default(defaultRewardConfig);
+
+    std::map<name, uint8_t> accounts;
+
+    auto numGroups = ranks.allRankings.size();
+    check(numGroups >= min_groups, too_few_groups.data());
+
+    auto coeffSum = std::accumulate(std::begin(polyCoeffs), std::end(polyCoeffs), 0);
+    auto multiplier = (double)rewardConfig.eos_reward_amt / (numGroups * coeffSum);
+
+    std::vector<int64_t> eosRewards;
+    std::transform(std::begin(polyCoeffs), std::end(polyCoeffs), std::back_inserter(eosRewards), [&](const auto& c) {
+        auto eosQuant = multiplier * c;
+        auto finalEosQuant = static_cast<int64_t>(eosQuant * eosPrecisionMult);
+        check(finalEosQuant > 0, "Total configured EOS distribution is too small to distibute any reward to rank 1s");
+        return finalEosQuant;
+    });
+
+    for (const auto& rank : ranks.allRankings) {
+        size_t group_size = rank.ranking.size();
+        check(group_size >= min_group_size, group_too_small.data());
+        check(group_size <= max_group_size, group_too_large.data());
+
+        auto rankIndex = max_group_size - group_size;
+        for (const auto& acc : rank.ranking) {
+            check(is_account(acc), "account " + acc.to_string() + " DNE");
+            check(0 == accounts[acc]++, "account " + acc.to_string() + " listed more than once");
+
+            auto fibAmount = static_cast<int64_t>(fib(rankIndex + rewardConfig.fib_offset));
+            auto edenAmt = static_cast<int64_t>(fibAmount * std::pow(10, eden_symbol.precision()));
+            auto edenQuantity = asset{edenAmt, eden_symbol};
+
+            // TODO: To better scale this contract, any distributions should not use require_recipient.
+            //       (Otherwise contracts could fail this action)
+            // Therefore,
+            //   Eden tokens should be added/subbed from balances directly (without calling transfer)
+            //   and EOS distribution should be stored, and then accounts can claim the EOS themselves.
+
+            // Distribute EDEN
+            issue(get_self(), edenQuantity, "Mint new Eden tokens");
+            transfer(get_self(), acc, edenQuantity, edenTransferMemo.data());
+
+            // Distribute EOS
+            token::actions::transfer eosTransfer{"eosio.token"_n, {get_self(), "active"_n}};
+            check(eosRewards.size() > rankIndex, "Shouldn't happen.");  // Indicates that the group is too large, but we already check for that?
+            auto eosQuantity = asset{eosRewards[rankIndex], eos_symbol};
+            eosTransfer.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
+
+            ++rankIndex;
+        }
+    }
 }
 
 void fractal_contract::sub_balance(const name& owner, const asset& value)
