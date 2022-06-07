@@ -12,25 +12,38 @@ using namespace eden_fractal::errors;
 
 bool succeeded(const transaction_trace& trace)
 {
-    if (trace.status == transaction_status::executed) {
-        return true;
+    if (trace.except) {
+        UNSCOPED_INFO("transaction has exception: " << *trace.except << "\n");
     }
-    else {
-        UNSCOPED_INFO("Was supposed to succeed, but failed with : " + trace.except.value());
-        return false;
-    }
+
+    return (trace.status == transaction_status::executed);
 }
 
 bool failedWith(const transaction_trace& trace, std::string_view err)
 {
-    if (trace.except->find(err.data()) != std::string::npos) {
-        return true;
+    bool ret = (trace.except->find(err.data()) != string::npos);
+    if (!ret && trace.except) {
+        UNSCOPED_INFO("transaction has exception: " << *trace.except << "\n");
     }
-    else {
-        auto intendedErr = std::string(err.data());
-        UNSCOPED_INFO("Was supposed to fail with: " + intendedErr + " but it failed with: " + trace.except.value());
-        return false;
-    }
+    return ret;
+}
+
+// Set up the token contract
+void setup_token(test_chain& t)
+{
+    t.create_code_account("eosio.token"_n);
+    t.set_code("eosio.token"_n, CLSDK_CONTRACTS_DIR "token.wasm");
+
+    // Create and issue tokens.
+    t.as("eosio.token"_n).act<token::actions::create>("eosio"_n, s2a("1000000.0000 EOS"));
+}
+
+void setup_eden_token(test_chain& t)
+{
+    t.create_code_account("eosio.token"_n);
+    t.set_code("eosio.token"_n, CLSDK_CONTRACTS_DIR "token.wasm");
+
+    t.as(eden_fractal::default_contract_account).act<actions::create>();
 }
 
 // Setup function to install my contract to the chain
@@ -153,7 +166,41 @@ SCENARIO("Testing sign and unsign")
     }
 }
 
-// Todo
-// SCENARIO("Token tests")
+SCENARIO("Testing token transfers")
+{
+    GIVEN("Standard chain setup")
+    {
+        // This starts a single-producer chain
+        test_chain t;
+        setup_installMyContract(t);
+        setup_createAccounts(t);
+        setup_eden_token(t);
+
+        // some shortcuts
+        auto alice = t.as("alice"_n);
+        auto dan = t.as("dan"_n);
+        auto contract = t.as(eden_fractal::default_contract_account);
+
+        std::string memo = "memo";
+
+        AND_GIVEN("Alice has some Eden tokens")
+        {  //
+            auto issue = contract.trace<actions::issue>(eden_fractal::default_contract_account, s2a("1000.0000 EDEN"), memo);
+            CHECK(succeeded(issue));  // Todo - Change to act instead of trace
+
+            auto transfer1 = contract.trace<actions::transfer>(eden_fractal::default_contract_account, "alice"_n, s2a("500.0000 EDEN"), memo);
+            CHECK(succeeded(transfer1));
+
+            THEN("Alice cannot send the tokens")
+            {  //
+                auto transfer = alice.trace<actions::transfer>("alice"_n, "bob"_n, s2a("50.0000 EDEN"), memo);
+                CHECK(failedWith(transfer, errors::untradeable));
+            }
+        }
+    }
+}
+
+SCENARIO("Rank submission") {}
+
+// Could add some tests for:
 // SCENARIO("Reward customization")
-// SCENARIO("Rank submission")
