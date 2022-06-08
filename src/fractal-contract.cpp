@@ -103,9 +103,9 @@ void fractal_contract::create()
 
 void fractal_contract::issue(const name& to, const asset& quantity, const string& memo)
 {
-    // Since this contract is the registered eden token "issuer", only this contract
-    //   is able to issue tokens. Anyone can try calling this, but it will fail.
+    // Only able to issue tokens to self
     check(to == get_self(), "tokens can only be issued to issuer account");
+    // Only this contract can issue tokens
     require_auth(get_self());
 
     validate_symbol(quantity.symbol);
@@ -212,27 +212,25 @@ void fractal_contract::fiboffset(uint8_t offset)
 void fractal_contract::submitranks(const AllRankings& ranks)
 {
     // This action calculates both types of rewards: EOS rewards, and the new token rewards.
-    constexpr auto eosPrecisionMult = 1e4;
     require_admin_auth();
 
     RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
     auto rewardConfig = rewardConfigTable.get_or_default(defaultRewardConfig);
 
-    std::map<name, uint8_t> accounts;
-
     auto numGroups = ranks.allRankings.size();
     check(numGroups >= min_groups, too_few_groups.data());
 
-    auto coeffSum = std::accumulate(std::begin(polyCoeffs), std::end(polyCoeffs), 0);
+    auto coeffSum = std::accumulate(std::begin(polyCoeffs), std::end(polyCoeffs), 0.0);
     auto multiplier = (double)rewardConfig.eos_reward_amt / (numGroups * coeffSum);
 
     std::vector<int64_t> eosRewards;
     std::transform(std::begin(polyCoeffs), std::end(polyCoeffs), std::back_inserter(eosRewards), [&](const auto& c) {
-        auto eosQuant = multiplier * c;
-        auto finalEosQuant = static_cast<int64_t>(eosQuant * eosPrecisionMult);
+        auto finalEosQuant = static_cast<int64_t>(multiplier * c);
         check(finalEosQuant > 0, "Total configured EOS distribution is too small to distibute any reward to rank 1s");
         return finalEosQuant;
     });
+
+    std::map<name, uint8_t> accounts;
 
     for (const auto& rank : ranks.allRankings) {
         size_t group_size = rank.ranking.size();
@@ -249,20 +247,19 @@ void fractal_contract::submitranks(const AllRankings& ranks)
             auto edenQuantity = asset{edenAmt, eden_symbol};
 
             // TODO: To better scale this contract, any distributions should not use require_recipient.
-            //       (Otherwise contracts could fail this action)
+            //       (Otherwise other user contracts could fail this action)
             // Therefore,
             //   Eden tokens should be added/subbed from balances directly (without calling transfer)
             //   and EOS distribution should be stored, and then accounts can claim the EOS themselves.
 
             // Distribute EDEN
-            issue(get_self(), edenQuantity, "Mint new Eden tokens");
-            transfer(get_self(), acc, edenQuantity, edenTransferMemo.data());
+            actions::issue(get_self(), {get_self(), "active"_n}).send(get_self(), edenQuantity, "Mint new Eden tokens");
+            actions::transfer(get_self(), {get_self(), "active"_n}).send(get_self(), acc, edenQuantity, edenTransferMemo.data());
 
             // Distribute EOS
-            token::actions::transfer eosTransfer{"eosio.token"_n, {get_self(), "active"_n}};
             check(eosRewards.size() > rankIndex, "Shouldn't happen.");  // Indicates that the group is too large, but we already check for that?
             auto eosQuantity = asset{eosRewards[rankIndex], eos_symbol};
-            eosTransfer.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
+            token::actions::transfer{"eosio.token"_n, {get_self(), "active"_n}}.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
 
             ++rankIndex;
         }

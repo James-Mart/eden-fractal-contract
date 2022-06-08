@@ -10,6 +10,43 @@ using namespace eosio;
 using namespace eden_fractal;
 using namespace eden_fractal::errors;
 
+namespace util {
+    template <typename T>
+    T from_json(std::string str)
+    {
+        json_token_stream jsonStream(str.data());
+        return from_json<T>(jsonStream);
+    }
+}  // namespace util
+
+namespace {
+    // TODO - Replace with eosio/authority after the new version of clsdk
+
+    struct tester_permission_level_weight {
+        eosio::permission_level permission = {};
+        uint16_t weight = {};
+    };
+    EOSIO_REFLECT(tester_permission_level_weight, permission, weight);
+
+    struct tester_wait_weight {
+        uint32_t wait_sec = {};
+        uint16_t weight = {};
+    };
+    EOSIO_REFLECT(tester_wait_weight, wait_sec, weight);
+
+    struct tester_authority {
+        uint32_t threshold = {};
+        std::vector<eosio::key_weight> keys = {};
+        std::vector<tester_permission_level_weight> accounts = {};
+        std::vector<tester_wait_weight> waits = {};
+    };
+    EOSIO_REFLECT(tester_authority, threshold, keys, accounts, waits);
+
+    constexpr auto code_permission = "eosio.code"_n;
+    permission_level EdenFractalAuth{eden_fractal::default_contract_account, code_permission};
+
+}  // namespace
+
 bool succeeded(const transaction_trace& trace)
 {
     if (trace.except) {
@@ -38,25 +75,21 @@ void setup_token(test_chain& t)
     t.as("eosio.token"_n).act<token::actions::create>("eosio"_n, s2a("1000000.0000 EOS"));
 }
 
-void setup_eden_token(test_chain& t)
-{
-    t.create_code_account("eosio.token"_n);
-    t.set_code("eosio.token"_n, CLSDK_CONTRACTS_DIR "token.wasm");
-
-    t.as(eden_fractal::default_contract_account).act<actions::create>();
-}
-
 // Setup function to install my contract to the chain
 void setup_installMyContract(test_chain& t)
 {
-    t.create_code_account(eden_fractal::default_contract_account);
-    t.set_code(eden_fractal::default_contract_account, "artifacts/eden_fractal.wasm");
+    auto contract = eden_fractal::default_contract_account;
+
+    t.create_code_account(contract);
+    t.set_code(contract, "artifacts/eden_fractal.wasm");
+
+    t.as(contract).act<actions::create>();
 }
 
 // Setup function to add some accounts to the chain
 void setup_createAccounts(test_chain& t)
 {
-    for (auto user : {"alice"_n, "dan"_n}) {
+    for (auto user : {"alice"_n, "dan"_n, "james"_n, "bob"_n, "charlie"_n, "david"_n, "elaine"_n, "frank"_n, "gary"_n, "harry"_n, "igor"_n, "jenny"_n}) {
         t.create_account(user);
     }
 }
@@ -174,7 +207,6 @@ SCENARIO("Testing token transfers")
         test_chain t;
         setup_installMyContract(t);
         setup_createAccounts(t);
-        setup_eden_token(t);
 
         // some shortcuts
         auto alice = t.as("alice"_n);
@@ -185,11 +217,8 @@ SCENARIO("Testing token transfers")
 
         AND_GIVEN("Alice has some Eden tokens")
         {  //
-            auto issue = contract.trace<actions::issue>(eden_fractal::default_contract_account, s2a("1000.0000 EDEN"), memo);
-            CHECK(succeeded(issue));  // Todo - Change to act instead of trace
-
-            auto transfer1 = contract.trace<actions::transfer>(eden_fractal::default_contract_account, "alice"_n, s2a("500.0000 EDEN"), memo);
-            CHECK(succeeded(transfer1));
+            contract.act<actions::issue>(eden_fractal::default_contract_account, s2a("1000.0000 EDEN"), memo);
+            contract.act<actions::transfer>(eden_fractal::default_contract_account, "alice"_n, s2a("500.0000 EDEN"), memo);
 
             THEN("Alice cannot send the tokens")
             {  //
@@ -200,7 +229,85 @@ SCENARIO("Testing token transfers")
     }
 }
 
-SCENARIO("Rank submission") {}
+/********* The submission JSON should look like this ********
+        {
+            "allRankings\": [
+                {
+                    "ranking": [
+                        "james",
+                        "dan",
+                        "alice",
+                        "bob",
+                        "charlie"
+                    ]
+                },
+                {
+                    "ranking": [
+                        "david",
+                        "elaine",
+                        "frank",
+                        "gary",
+                        "harry"
+                    ]
+                }
+            ]
+        };
+*/
+
+SCENARIO("Rank submission")
+{
+    GIVEN("Standard setup, and an admin has a ranking to submit")
+    {
+        // This starts a single-producer chain
+        test_chain t;
+        setup_installMyContract(t);
+        setup_createAccounts(t);
+        setup_token(t);
+
+        auto dan = t.as("dan"_n);
+
+        // clang-format off
+        std::string ranks = 
+        "{"
+            "\"allRankings\": ["
+                "{\"ranking\": ["
+                        "\"james\","
+                        "\"dan\","
+                        "\"alice\","
+                        "\"bob\","
+                        "\"charlie\","
+                        "\"igor\""
+                    "]},"
+                "{\"ranking\": ["
+                        "\"david\","
+                        "\"elaine\","
+                        "\"frank\","
+                        "\"gary\","
+                        "\"harry\","
+                        "\"jenny\""
+                    "]}"
+            "]"
+        "}";
+        // clang-format on
+
+        // Give the eden fractal some EOS
+        t.as("eosio"_n).act<token::actions::issue>("eosio"_n, s2a("1000000.0000 EOS"), "");
+        t.as("eosio"_n).act<token::actions::transfer>("eosio"_n, default_contract_account, s2a("10000.0000 EOS"), "");
+
+        THEN("An admin may submit a ranking")
+        {
+            auto submitRanks = dan.trace<actions::submitranks>(util::from_json<AllRankings>(ranks));
+            CHECK(succeeded(submitRanks));
+        }
+
+        /* TODO - Add test cases to confirm all error conditions:
+         *   Too few members in a group
+         *   Too many members in a group
+         *   Too few groups
+         *   One name repeated in multiple groups
+        */
+    }
+}
 
 // Could add some tests for:
 // SCENARIO("Reward customization")
