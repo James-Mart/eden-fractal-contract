@@ -240,7 +240,7 @@ SCENARIO("Testing token transfers")
 
 /********* The submission JSON should look like this ********
         {
-            "allRankings\": [
+            "allRankings": [
                 {
                     "ranking": [
                         "james",
@@ -260,7 +260,7 @@ SCENARIO("Testing token transfers")
                     ]
                 }
             ]
-        };
+        }
 */
 
 SCENARIO("Rank submission")
