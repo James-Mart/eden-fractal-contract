@@ -238,31 +238,6 @@ SCENARIO("Testing token transfers")
     }
 }
 
-/********* The submission JSON should look like this ********
-        {
-            "allRankings": [
-                {
-                    "ranking": [
-                        "james",
-                        "dan",
-                        "alice",
-                        "bob",
-                        "charlie"
-                    ]
-                },
-                {
-                    "ranking": [
-                        "david",
-                        "elaine",
-                        "frank",
-                        "gary",
-                        "harry"
-                    ]
-                }
-            ]
-        }
-*/
-
 SCENARIO("Rank submission")
 {
     GIVEN("Standard setup, and an admin has a ranking to submit")
