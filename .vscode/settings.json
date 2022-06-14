@@ -107,5 +107,6 @@
         "-Wextra"
     ],
     "editor.defaultFormatter": "xaver.clang-format",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "C_Cpp.errorSquiggles": "Disabled"
 }
