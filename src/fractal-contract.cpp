@@ -221,9 +221,10 @@ void fractal_contract::submitranks(const AllRankings& ranks)
     check(numGroups >= min_groups, too_few_groups.data());
 
     auto coeffSum = std::accumulate(std::begin(polyCoeffs), std::end(polyCoeffs), 0.0);
+
+    // Calculation how much EOS per coefficient.
     auto multiplier = (double)rewardConfig.eos_reward_amt / (numGroups * coeffSum);
 
-    //assigns how much EOS is coeff has.
     std::vector<int64_t> eosRewards;
     std::transform(std::begin(polyCoeffs), std::end(polyCoeffs), std::back_inserter(eosRewards), [&](const auto& c) {
         auto finalEosQuant = static_cast<int64_t>(multiplier * c);
@@ -232,7 +233,7 @@ void fractal_contract::submitranks(const AllRankings& ranks)
     });
 
     std::map<name, uint8_t> accounts;
-// Mis see tähendab 
+
     for (const auto& rank : ranks.allRankings) {
         size_t group_size = rank.ranking.size();
         check(group_size >= min_group_size, group_too_small.data());
