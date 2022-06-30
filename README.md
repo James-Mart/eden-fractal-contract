@@ -26,6 +26,10 @@ Initially, this contract will have the following actions:
 * eosrewardamt - Only callable by an admin. Configures the total amount of EOS used for distributions after meetings.
 * fiboffset - Only callable by an admin. Sets the 0-based index of the fibonacci sequence used for native token distribution to rank 1 (e.g. if offset = 5, rank 1 members will be allocated 8 new tokens).
 * submitranks - Only callable by an admin. Submits all group rankings. Order each group in the order they rank (rank 1 first, rank 6 last).
+* submitcons - Callable by anyone with EOS acc. Action enables each user to submit rankings for members of his group. 
+* startelect - Only callable by an admin. Action enables to start new election by incrementing election number and setting time point for the start of the election. 
+
+
 
 # Contributing
 

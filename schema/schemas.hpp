@@ -6,6 +6,49 @@
 #include <string>
 
 namespace eden_fractal {
+
+    //Consesus submission related
+    struct Consenzus {
+        std::vector<eosio::name> rankings;
+        uint64_t groupNr;
+        eosio::name submitter;
+
+        uint64_t primary_key() const { return submitter.value; }
+
+        uint64_t get_secondary_1() const { return groupNr; }
+    };
+    EOSIO_REFLECT(Consenzus, rankings, groupNr, submitter);
+    EOSIO_COMPARE(Consenzus);
+
+    struct ElectionInf {
+        uint64_t electionNr;
+        eosio::time_point_sec starttime;
+    };
+    EOSIO_REFLECT(ElectionInf, electionNr, starttime);
+
+    /*
+
+    struct Consensus {
+        results results0;
+        uint64_t electionNr;
+
+        uint64_t primary_key() const { return electionNr; }
+    };
+    EOSIO_REFLECT(Consensus, results, electionNr);
+
+    struct results {
+        std::vector<eosio::name> rankings;
+        eosio::name submitter;
+    };
+    EOSIO_REFLECT(results, rankings, submitter);
+
+    struct ElectionInf {
+        uint8_t electionNr;
+        time_point_sec electionstart;
+    };
+    EOSIO_REFLECT(ElectionNr, electionNr, electionstart);
+
+*/
     // Agreement-related
     struct Agreement {
         std::string agreement;

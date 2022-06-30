@@ -4,6 +4,13 @@ const char* eden_fractal::ricardian_clause = R"(
 The Eden Fractal is similar to a fractal as defined in the Fractally whitepaper. <Todo: Include mission statement>
 )";
 
+const char* eden_fractal::submitcons_ricardian = R"(
+This action enables participants of election to submit rankings of their group members.
+)";
+
+const char* eden_fractal::startelect_ricardian = R"(
+Only callable by an admin. This action increments the election number and sets timer for the election.)";
+
 const char* eden_fractal::setagreement_ricardian = R"(
 This action updates the Eden Fractal membership agreement that all community members are required to sign to participate.
 )";

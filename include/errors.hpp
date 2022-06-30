@@ -4,6 +4,10 @@
 
 namespace eden_fractal {
     namespace errors {
+
+        // Consensus submission-related
+        constexpr std::string_view noElections = "No eletions have happened yet.";
+
         // Agreement-related
         constexpr std::string_view requiresAdmin = "Action requires admin authority. Admins: Dan Singjoy, Joshua Seymour, Chuck Macdonald.";
         constexpr std::string_view alreadySigned = "You already signed the agreement";

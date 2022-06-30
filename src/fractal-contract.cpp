@@ -14,9 +14,12 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n};
+    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n};
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
+
+    const auto defaultElectionInf = ElectionInf{.electionNr = (uint64_t)0, .starttime = (time_point_sec)10};
+    const auto eleclimit = seconds(7200);
 
     const auto defaultRewardConfig = RewardConfig{.eos_reward_amt = (int64_t)100e4, .fib_offset = 5};
     constexpr auto min_groups = size_t{2};
@@ -268,6 +271,62 @@ void fractal_contract::submitranks(const AllRankings& ranks)
     }
 }
 
+/*** Consensus related ***/
+
+void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<name>& rankings, const name& submitter)
+{
+    require_auth(submitter);
+
+    size_t group_size = rankings.size();
+
+    check(group_size >= min_group_size, group_too_small.data());
+    check(group_size <= max_group_size, group_too_large.data());
+
+    check(is_account(submitter), "Submitter's account does not exist.");
+
+     for (int i = 0; i < rankings.size(); i++)
+    {
+        std::string rankname = rankings[i].to_string();
+
+        check(is_account(rankings[i]), rankname + " account does not exist.");
+    }
+
+    check(groupnr >= 1, "Group number error.");
+
+    ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
+    auto serks = singleton.get_or_default(defaultElectionInf);
+
+    //check(serks.starttime + seconds(180) > current_time_point(), "Election has ended.");
+    check(serks.starttime + eleclimit > current_time_point(), "Election has ended.");
+
+    ConsenzusTable table(default_contract_account, serks.electionNr);
+
+    if (table.find(submitter.value) == table.end()) {
+        table.emplace(submitter, [&](auto& row) {
+            row.rankings = rankings;
+            row.submitter = submitter;
+            row.groupNr = groupnr;
+        });
+    }
+    else {
+        check(false, "You can vote only once my friend.");
+    }
+}
+
+void fractal_contract::startelect()
+{
+    require_admin_auth();
+
+    ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
+    auto liza = singleton.get_or_default(defaultElectionInf);
+    check(liza.electionNr != std::numeric_limits<decltype(liza.electionNr)>::max(), "election nr overflow");
+
+    liza.starttime = current_time_point();
+    liza.electionNr += 1;
+
+    singleton.set(liza, get_self());
+}
+
 void fractal_contract::sub_balance(const name& owner, const asset& value)
 {
     accounts from_acnts(get_self(), owner.value);
@@ -324,6 +383,14 @@ EOSIO_ABIGEN(actions(eden_fractal::actions),
     table("stat"_n, eden_fractal::currency_stats),
 
     table("rewardconf"_n, eden_fractal::RewardConfig),
+
+    table("consenzus"_n, eden_fractal::Consenzus),
+    table("electioninf"_n, eden_fractal::ElectionInf),
+
+
+
+
+
 
     ricardian_clause("Fractal contract ricardian clause", eden_fractal::ricardian_clause)
 )
