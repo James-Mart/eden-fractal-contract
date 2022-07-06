@@ -215,7 +215,7 @@ void fractal_contract::fiboffset(uint8_t offset)
 void fractal_contract::submitranks(const AllRankings& ranks)
 {
     // This action calculates both types of rewards: EOS rewards, and the new token rewards.
-    require_admin_auth();
+    require_auth(get_self());
 
     RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
     auto rewardConfig = rewardConfigTable.get_or_default(defaultRewardConfig);
@@ -296,7 +296,6 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
     ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
     auto serks = singleton.get_or_default(defaultElectionInf);
 
-    //check(serks.starttime + seconds(180) > current_time_point(), "Election has ended.");
     check(serks.starttime + eleclimit > current_time_point(), "Election has ended.");
 
     ConsenzusTable table(default_contract_account, serks.electionNr);
