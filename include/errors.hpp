@@ -13,6 +13,7 @@ namespace eden_fractal {
         constexpr std::string_view alreadySigned = "You already signed the agreement";
         constexpr std::string_view noAgreement = "No agreement has been added yet";
         constexpr std::string_view notSigned = "You haven't signed this agreement. Nothing to unsign";
+        constexpr std::string_view missingRequiredAuth = "Missing required authority";
 
         // Token-related
         constexpr std::string_view tokenAlreadyCreated = "Token already created";
