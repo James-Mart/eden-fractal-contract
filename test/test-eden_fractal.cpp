@@ -453,3 +453,111 @@ SCENARIO("Setting reward and fib offset")
         }
     }
 }
+
+// The rules for these circles work slightly differently than in fractally,
+// The team lead cannot be changed.
+// There is no concept of full-time or part-time members. Teams can subjectively manage their membership to only include active members.
+SCENARIO("Creating and managing a circle")  // (team)
+{
+    GIVEN("Standard setup")
+    {
+        test_chain t;
+        setup_installMyContract(t);
+        setup_createAccounts(t);
+        setup_token(t);
+
+        const auto c = "mycircle"_n;
+        t.create_account(c);
+        auto circle = t.as(c);
+
+        THEN("A team account can create a circle")
+        {
+            AND_THEN("The circle exists") {}
+            AND_THEN("No one can create a circle with the same name") {}
+            AND_THEN("The team account cannot create another circle") {}
+        }
+        WHEN("A circle is created")
+        {
+            THEN("The circle account can invite members to it")
+            {
+                AND_THEN("The new member is invited") {}
+                AND_THEN("The new member is not on the team") {}
+            }
+            THEN("Outsiders cannot invite themselves to it") {}
+            AND_WHEN("A new member is invited")
+            {
+                THEN("The invite may be declined by the inviter") {}
+                THEN("Someone else cannot accept or reject the invite on behalf of the invitee") {}
+                THEN("The new member can accept the invite")
+                {
+                    AND_THEN("The new member is on the team") {}
+                    AND_THEN("The new member is no longer invited") {}
+                    AND_THEN("The new member cannot accept the invite again") {}
+                }
+                THEN("The new member can reject the invite")
+                {
+                    AND_THEN("The new member is not on the team") {}
+                    AND_THEN("The new member is no longer invited") {}
+                    AND_THEN("The new member cannot reject the invite again") {}
+                }
+                AND_WHEN("The new member joins the team")
+                {
+                    THEN("They may be kicked out of the team by the team lead")
+                    {
+                        AND_THEN("They are no longer on the team") {}
+                        AND_THEN("They may not leave the team again") {}
+                    }
+                    THEN("They may leave the team")
+                    {
+                        AND_THEN("They are no longer on the team") {}
+                        AND_THEN("They may not leave the team again") {}
+                    }
+                    THEN("They may be invited to other teams") {}
+                    AND_WHEN("They are invited to other teams")
+                    {
+                        THEN("They may not join the other team") {}
+                        AND_WHEN("The member leaves their existing team")
+                        {
+                            THEN("They may not join the new team until the time restriction has passed") {}
+                            WHEN("The time restriction has passed")
+                            {
+                                THEN("They may join the new team") {}
+                            }
+                        }
+                    }
+                }
+                AND_WHEN("The circle gets a sum of 12 members + invites")
+                {
+                    THEN("No more members can be invited") {}
+                }
+            }
+        }
+    }
+}
+
+SCENARIO("Payouts with cirlces")
+{
+    GIVEN("Standard setup with a particular ranking to submit")
+    {
+        // Use the (global) expected distribution for a given ranking
+
+        THEN("A ranking may not be submitted that includes a circle account") {}
+        THEN("A ranking may be submitted that includes a circle member") {}
+        AND_GIVEN("A circle that has fewer than the minimum number of members")  // == 4
+        {
+            WHEN("A ranking is submitted that includes a member")
+            {
+                THEN("The distribution is equivalent to the distribution without any circle members") {}
+            }
+        }
+        AND_GIVEN("A circle that has at least the minimum number of members")
+        {
+            WHEN("A ranking is submitted that includes a member")
+            {
+                THEN("All members get their same expected distribution") {}
+                THEN("The circle account also gets a distribution that matches the sum of what each circle member earned") {}
+                THEN("The circle account does not get any EOS") {}
+            }
+        }
+    }
+}
