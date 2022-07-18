@@ -25,5 +25,16 @@ namespace eden_fractal {
         constexpr std::string_view group_too_small = "One of the groups is too small. Minimum group size = 5.";
         constexpr std::string_view group_too_large = "One of the groups is too large. Maximum group size = 6.";
 
+        // Circle related
+        constexpr std::string_view circleBrandTaken = "A circle with this brand was already taken.";
+        constexpr std::string_view circleAccountUsed = "Account already used to create a circle.";
+        constexpr std::string_view circleAdminRequired = "Circle admin account is required to do that.";
+        constexpr std::string_view circleInviteDNE = "Circle invite does not exist.";
+        constexpr std::string_view circleDelWithMembers = "Circle cannot be deleted if it still has members.";
+        constexpr std::string_view circleNotAMember = "Only a member of that circle can perform that action.";
+        constexpr std::string_view circleAlreadyOnTeam = "You cannot join more than one team.";
+        constexpr std::string_view circle20DaysJoinDelay = "You must wait a total of 20 days before joining another team.";
+        constexpr std::string_view noCircleAccRank = "No circle admin account is allowed to be ranked in consensus rounds. Only circle members.";
+
     }  // namespace errors
 }  // namespace eden_fractal

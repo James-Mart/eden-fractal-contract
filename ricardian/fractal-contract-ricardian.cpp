@@ -40,6 +40,25 @@ const char* eden_fractal::close_ricardian = R"(
 The opposite for open, it closes the account `owner` (balance must be 0).
 )";
 
+const char* eden_fractal::circcreate_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circdelete_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circinvite_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circinvdec_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circinvacc_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circleave_ricardian = R"(
+TODO
+)";
+
 const char* eden_fractal::eosrewardamt_ricardian = R"(
 Only callable by an admin. Sets the total amount of EOS used for distributions after meetings.
 )";

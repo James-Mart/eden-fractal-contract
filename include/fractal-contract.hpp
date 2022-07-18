@@ -33,6 +33,13 @@ namespace eden_fractal {
     extern const char* open_ricardian;
     extern const char* close_ricardian;
 
+    extern const char* circcreate_ricardian;
+    extern const char* circdelete_ricardian;
+    extern const char* circinvite_ricardian;
+    extern const char* circinvdec_ricardian;
+    extern const char* circinvacc_ricardian;
+    extern const char* circleave_ricardian;
+
     extern const char* eosrewardamt_ricardian;
     extern const char* fiboffset_ricardian;
     extern const char* submitranks_ricardian;
@@ -53,6 +60,7 @@ namespace eden_fractal {
         using accounts = eosio::multi_index<"accounts"_n, account>;
         using stats = eosio::multi_index<"stat"_n, currency_stats>;
         using RewardConfigSingleton = eosio::singleton<"rewardconf"_n, RewardConfig>;
+        using CirclesTable = eosio::multi_index<"circles"_n, Circle>;
 
         using ConsenzusTable = eosio::multi_index<"consenzus"_n, Consenzus, indexed_by<"bygroupnr"_n, const_mem_fun<Consenzus, uint64_t, &Consenzus::get_secondary_1>>>;
 
@@ -81,6 +89,14 @@ namespace eden_fractal {
         void eosrewardamt(const asset& quantity);
         void fiboffset(uint8_t offset);
         void submitranks(const AllRankings& ranks);
+
+        // Circle-related actions
+        void circcreate(const name& circle_account, const name& brand_name) {}
+        void circdelete(const name& circle_account) {}
+        void circinvite(const name& circle_account, const name& invitee) {}
+        void circinvdec(const name& circle_account, const name& invitee) {}
+        void circinvacc(const name& circle_account, const name& invitee) {}
+        void circleave(const name& circle_account, const name& member) {}
 
         // Tester/contract interface to simplify token queries
         static asset get_supply(const symbol_code& sym_code)
@@ -125,6 +141,13 @@ namespace eden_fractal {
                   action(transfer, from, to, quantity, memo, ricardian_contract(transfer_ricardian)),
                   action(open, owner, symbol, ram_payer, ricardian_contract(open_ricardian)),
                   action(close, owner, symbol, ricardian_contract(close_ricardian)),
+
+                  action(circcreate, circle_account, brand_name, ricardian_contract(circcreate_ricardian)),
+                  action(circdelete, circle_account, ricardian_contract(circdelete_ricardian)),
+                  action(circinvite, circle_account, invitee, ricardian_contract(circinvite_ricardian)),
+                  action(circinvdec, circle_account, invitee, ricardian_contract(circinvdec_ricardian)),
+                  action(circinvacc, circle_account, invitee, ricardian_contract(circinvacc_ricardian)),
+                  action(circleave, circle_account, member, ricardian_contract(circleave_ricardian)),
 
                   action(eosrewardamt, quantity, ricardian_contract(eosrewardamt_ricardian)),
                   action(fiboffset, offset, ricardian_contract(fiboffset_ricardian)),

@@ -95,4 +95,14 @@ namespace eden_fractal {
     };
     EOSIO_REFLECT(AllRankings, allRankings);
 
+    struct Circle {
+        eosio::name admin;
+        eosio::name brand_name;
+        std::vector<eosio::name> members;
+        std::vector<eosio::name> invites;
+
+        uint64_t primary_key() const { return admin.value; }
+    };
+    EOSIO_REFLECT(Circle, admin, brand_name, members, invites);
+
 }  // namespace eden_fractal
