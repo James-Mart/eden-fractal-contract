@@ -38,7 +38,7 @@ namespace eden_fractal {
     extern const char* submitranks_ricardian;
 
     // The account at which this contract is deployed
-    inline constexpr auto default_contract_account = "edenfractest"_n;
+    inline constexpr auto default_contract_account = "eden.fractal"_n;
 
     constexpr std::string_view eden_ticker{"EDEN"};
     constexpr symbol eos_symbol{"EOS", 4};
