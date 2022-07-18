@@ -45,7 +45,7 @@ fractal_contract::fractal_contract(name receiver, name code, datastream<const ch
 
 void fractal_contract::setagreement(const std::string& agreement)
 {
-    require_admin_auth();
+    require_auth(get_self());
 
     AgreementSingleton singleton(default_contract_account, default_contract_account.value);
     auto record = singleton.get_or_default(Agreement{});
@@ -189,7 +189,7 @@ void fractal_contract::close(const name& owner, const symbol& symbol)
 
 void fractal_contract::eosrewardamt(const asset& quantity)
 {
-    require_admin_auth();
+    require_auth(get_self());
 
     RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
     auto record = rewardConfigTable.get_or_default(defaultRewardConfig);
@@ -203,7 +203,7 @@ void fractal_contract::eosrewardamt(const asset& quantity)
 
 void fractal_contract::fiboffset(uint8_t offset)
 {
-    require_admin_auth();
+    require_auth(get_self());
 
     RewardConfigSingleton rewardConfigTable(default_contract_account, default_contract_account.value);
     auto record = rewardConfigTable.get_or_default(defaultRewardConfig);
@@ -284,8 +284,7 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
 
     check(is_account(submitter), "Submitter's account does not exist.");
 
-     for (int i = 0; i < rankings.size(); i++)
-    {
+    for (int i = 0; i < rankings.size(); i++) {
         std::string rankname = rankings[i].to_string();
 
         check(is_account(rankings[i]), rankname + " account does not exist.");
