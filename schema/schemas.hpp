@@ -3,6 +3,7 @@
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/name.hpp>
+#include <eosio/time.hpp>
 #include <string>
 
 namespace eden_fractal {
@@ -101,8 +102,31 @@ namespace eden_fractal {
         std::vector<eosio::name> members;
         std::vector<eosio::name> invites;
 
+        bool has_member(const eosio::name& member) const
+        {  //
+            return std::find(std::begin(members), std::end(members), member) != std::end(members);
+        }
+        bool has_invite(const eosio::name& invitee) const
+        {  //
+            return std::find(std::begin(invites), std::end(invites), invitee) != std::end(invites);
+        }
+
         uint64_t primary_key() const { return admin.value; }
     };
     EOSIO_REFLECT(Circle, admin, brand_name, members, invites);
+
+    struct CircleSettings {
+        uint32_t change_wait_time_sec;
+        uint8_t max_size;
+    };
+    EOSIO_REFLECT(CircleSettings, change_wait_time_sec, max_size);
+
+    struct CircleSwitchWaits {
+        eosio::name member;
+        eosio::time_point_sec leave_timestamp;
+
+        uint64_t primary_key() const { return member.value; }
+    };
+    EOSIO_REFLECT(CircleSwitchWaits, member, leave_timestamp);
 
 }  // namespace eden_fractal

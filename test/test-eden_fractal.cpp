@@ -664,12 +664,12 @@ SCENARIO("Creating and managing a circle")  // (team)
                             THEN("They may not join the other team")
                             {
                                 auto joinAnotherTeam = alice.trace<actions::circinvacc>(circleAcc2, "alice"_n);
-                                CHECK(failedWith(joinAnotherTeam, circleAlreadyOnTeam));
+                                CHECK(failedWith(joinAnotherTeam, circleAlreadyInCircle));
                             }
                             AND_WHEN("The member leaves their existing team and waits less than the time restriction")
                             {
                                 alice.act<actions::circleave>(circleAcc, "alice"_n);
-                                int64_t ms20Days = 21 * 24 * 60 * 60 * 1000;
+                                int64_t ms20Days = 20 * 24 * 60 * 60 * 1000;
                                 t.start_block(ms20Days - 1000);  // 1s less than 20 days worth of blocks
 
                                 THEN("They may not join the new team until the time restriction has passed")
@@ -810,7 +810,7 @@ SCENARIO("Payouts with circles")
         {
             AllRankings badRanks{{{{circleAcc, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n}}, {{"david"_n, "elaine"_n, "frank"_n, "gary"_n, "harry"_n, "jenny"_n}}}};
             auto submitRanks = self.trace<actions::submitranks>(badRanks);
-            CHECK(failedWith(submitRanks, noCircleAccRank));
+            CHECK(failedWith(submitRanks, circleNoAdminAccRank));
         }
         THEN("A ranking may be submitted that includes a circle member")
         {

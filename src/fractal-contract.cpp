@@ -11,6 +11,12 @@
 
 using namespace eden_fractal;
 using namespace eden_fractal::errors;
+
+using std::begin;
+using std::end;
+using std::find;
+using std::remove;
+
 namespace {
 
     // Some compile-time configuration
@@ -29,6 +35,8 @@ namespace {
     constexpr std::string_view edenTransferMemo = "Eden fractal respect distribution";
     constexpr std::string_view eosTransferMemo = "Eden fractal participation $EOS reward";
 
+    const auto default_circle_settings = CircleSettings{.change_wait_time_sec = (uint32_t)20 * 24 * 60 * 60, .max_size = 12};
+
     // Coefficients of 6th order poly where p is phi (ratio between adjacent fibonacci numbers)
     // xp^0 + xp^1 ...
     constexpr std::array<double, max_group_size> polyCoeffs{1, 1.618, 2.617924, 4.235801032, 6.85352607, 11.08900518};
@@ -37,6 +45,10 @@ namespace {
     auto fib(auto index) -> decltype(index)
     {  //
         return (index <= 1) ? index : fib(index - 1) + fib(index - 2);
+    };
+
+    auto now = []() -> time_point_sec {  //
+        return time_point_sec(current_time_point().sec_since_epoch());
     };
 
 }  // namespace
@@ -271,6 +283,140 @@ void fractal_contract::submitranks(const AllRankings& ranks)
     }
 }
 
+/*** Circle related ***/
+void fractal_contract::circcreate(const name& circle_account, const name& brand_name)
+{
+    require_auth(circle_account);
+
+    CirclesTable circles(get_self(), get_self().value);
+    check(circles.find(circle_account.value) == circles.end(), circleAccountUsed.data());
+    for (auto iter = circles.begin(); iter != circles.end(); ++iter) {
+        check(iter->brand_name != brand_name, circleBrandTaken.data());
+        check(!std::any_of(iter->members.begin(), iter->members.end(), [&](const auto& member) { return member == circle_account; }), circleInvalidAdminAcc.data());
+        check(!std::any_of(iter->invites.begin(), iter->invites.end(), [&](const auto& member) { return member == circle_account; }), circleInvalidAdminAcc.data());
+    }
+
+    circles.emplace(circle_account, [&](auto& c) {
+        c.admin = circle_account;
+        c.brand_name = brand_name;
+    });
+}
+
+void fractal_contract::circdelete(const name& circle_account)
+{
+    require_auth(circle_account);
+
+    CirclesTable circles(get_self(), get_self().value);
+    auto circle = circles.require_find(circle_account.value);
+
+    check(circle->members.size() == 0, circleDelWithMembers.data());
+    check(circle->invites.size() == 0, circleDelWithInvites.data());
+
+    circles.erase(circle);
+}
+
+void fractal_contract::circinvite(const name& circle_account, const name& invitee)
+{
+    require_auth(circle_account);
+    check(is_account(invitee), circleInviteeDNE.data());
+
+    CirclesTable circles(get_self(), get_self().value);
+    auto circle = circles.require_find(circle_account.value);
+
+    CircleSettingsSingleton singleton(default_contract_account, default_contract_account.value);
+    auto circleSettings = singleton.get_or_default(default_circle_settings);
+
+    check(circle->invites.size() + circle->members.size() <= circleSettings.max_size, circleMaxSize.data());
+    check(!(circle->has_member(invitee)), circleCannotInviteMember.data());
+    check(!(circle->has_invite(invitee)), circleAlreadyInvited.data());
+
+    circles.modify(circle, eosio::same_payer, [&](auto& c) {  //
+        c.invites.push_back(invitee);
+    });
+}
+
+void fractal_contract::circinvdec(const name& circle_account, const name& invitee)
+{
+    check(has_auth(invitee) || has_auth(circle_account), missingRequiredAuth.data());
+
+    CirclesTable circles(get_self(), get_self().value);
+    auto circle = circles.require_find(circle_account.value);
+
+    check(circle->has_invite(invitee), circleInviteDNE.data());
+
+    circles.modify(circle, eosio::same_payer, [&](auto& c) {  //
+        c.invites.erase(remove(begin(c.invites), end(c.invites), invitee), end(c.invites));
+    });
+}
+
+void fractal_contract::circinvacc(const name& circle_account, const name& invitee)
+{
+    check(has_auth(invitee) || has_auth(circle_account), missingRequiredAuth.data());
+
+    CirclesTable circles(get_self(), get_self().value);
+    auto circle = circles.require_find(circle_account.value);
+
+    check(circle->has_invite(invitee), circleInviteDNE.data());
+    check(!user_has_outstanding_wait(invitee), circle20DaysJoinDelay.data());
+
+    circles.modify(circle, eosio::same_payer, [&](auto& c) {
+        c.invites.erase(remove(begin(c.invites), end(c.invites), invitee), end(c.invites));
+        c.members.push_back(invitee);
+    });
+}
+
+void fractal_contract::circleave(const name& circle_account, const name& member)
+{
+    check(has_auth(member) || has_auth(circle_account), missingRequiredAuth.data());
+
+    CirclesTable circles(get_self(), get_self().value);
+    auto circle = circles.require_find(circle_account.value);
+
+    check(circle->has_member(member), circleNotAMember.data());
+
+    // Delete the member from their circle
+    circles.modify(circle, eosio::same_payer, [&](auto& c) {  //
+        c.members.erase(remove(begin(c.members), end(c.members), member), end(c.members));
+    });
+
+    // Apply a wait to prevent them from joining another team until the minimum wait time is over
+    WaitsTable waits(get_self(), get_self().value);
+    auto memIter = waits.find(member.value);
+    if (memIter != waits.end()) {
+        waits.modify(memIter, eosio::same_payer, [&](auto& wait) {  //
+            wait.leave_timestamp = now();
+        });
+    }
+    else {
+        waits.emplace(get_self(), [&](auto& wait) {  //
+            wait.member = member;
+            wait.leave_timestamp = now();
+        });
+    }
+}
+
+void fractal_contract::circmaxsize(uint8_t max_circle_size)
+{
+    require_auth(get_self());
+
+    CircleSettingsSingleton singleton(default_contract_account, default_contract_account.value);
+    auto record = singleton.get_or_default(default_circle_settings);
+    record.max_size = max_circle_size;
+
+    singleton.set(record, get_self());
+}
+
+void fractal_contract::circchngtime(uint32_t circle_change_wait_time_sec)
+{
+    require_auth(get_self());
+
+    CircleSettingsSingleton singleton(default_contract_account, default_contract_account.value);
+    auto record = singleton.get_or_default(default_circle_settings);
+    record.change_wait_time_sec = circle_change_wait_time_sec;
+
+    singleton.set(record, get_self());
+}
+
 /*** Consensus related ***/
 
 void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<name>& rankings, const name& submitter)
@@ -370,6 +516,39 @@ void fractal_contract::require_admin_auth()
     check(hasAuth, requiresAdmin.data());
 }
 
+bool fractal_contract::user_has_outstanding_wait(const name& member)
+{
+    CircleSettingsSingleton singleton(default_contract_account, default_contract_account.value);
+    auto circleSettings = singleton.get_or_default(default_circle_settings);
+    const auto min_wait = circleSettings.change_wait_time_sec;
+
+    auto wait_expired = [&](const time_point_sec& leave_timestamp) {  //
+        return ((now() - leave_timestamp).to_seconds() >= min_wait);
+    };
+
+    // Determine if this member has a wait on their account
+    bool has_wait = false;
+    WaitsTable waits(get_self(), get_self().value);
+    auto memIter = waits.find(member.value);
+    if (memIter != waits.end()) {
+        has_wait = !wait_expired(memIter->leave_timestamp);
+    }
+
+    // Delete up to ten expired wait records
+    vector<eosio::name> expiredWaits;
+    for (auto iter = waits.begin(); iter != waits.end() && expiredWaits.size() < 10; ++iter) {
+        if (wait_expired(iter->leave_timestamp)) {
+            expiredWaits.push_back(iter->member);
+        }
+    }
+    for (const auto& mem : expiredWaits) {
+        auto iter = waits.require_find(mem.value);  // Can never fail since mem was just found above
+        waits.erase(iter);
+    }
+
+    return has_wait;
+}
+
 EOSIO_ACTION_DISPATCHER(eden_fractal::actions)
 
 // clang-format off
@@ -385,6 +564,9 @@ EOSIO_ABIGEN(actions(eden_fractal::actions),
     table("consenzus"_n, eden_fractal::Consenzus),
     table("electioninf"_n, eden_fractal::ElectionInf),
 
+    table("circles"_n, eden_fractal::Circle),
+    table("circsettings"_n, eden_fractal::CircleSettings),
+    table("circlewaits"_n, eden_fractal::CircleSwitchWaits),
 
 
 

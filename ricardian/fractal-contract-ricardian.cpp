@@ -58,6 +58,12 @@ TODO
 const char* eden_fractal::circleave_ricardian = R"(
 TODO
 )";
+const char* eden_fractal::circmaxsize_ricardian = R"(
+TODO
+)";
+const char* eden_fractal::circchngtime_ricardian = R"(
+TODO
+)";
 
 const char* eden_fractal::eosrewardamt_ricardian = R"(
 Only callable by an admin. Sets the total amount of EOS used for distributions after meetings.

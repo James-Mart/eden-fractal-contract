@@ -39,6 +39,8 @@ namespace eden_fractal {
     extern const char* circinvdec_ricardian;
     extern const char* circinvacc_ricardian;
     extern const char* circleave_ricardian;
+    extern const char* circmaxsize_ricardian;
+    extern const char* circchngtime_ricardian;
 
     extern const char* eosrewardamt_ricardian;
     extern const char* fiboffset_ricardian;
@@ -56,11 +58,13 @@ namespace eden_fractal {
         using eosio::contract::contract;
 
         using AgreementSingleton = eosio::singleton<"agreement"_n, Agreement>;
+        using CircleSettingsSingleton = eosio::singleton<"circsettings"_n, CircleSettings>;
         using SignersTable = eosio::multi_index<"signatures"_n, Signature>;
         using accounts = eosio::multi_index<"accounts"_n, account>;
         using stats = eosio::multi_index<"stat"_n, currency_stats>;
         using RewardConfigSingleton = eosio::singleton<"rewardconf"_n, RewardConfig>;
         using CirclesTable = eosio::multi_index<"circles"_n, Circle>;
+        using WaitsTable = eosio::multi_index<"switchwaits"_n, CircleSwitchWaits>;
 
         using ConsenzusTable = eosio::multi_index<"consenzus"_n, Consenzus, indexed_by<"bygroupnr"_n, const_mem_fun<Consenzus, uint64_t, &Consenzus::get_secondary_1>>>;
 
@@ -91,12 +95,14 @@ namespace eden_fractal {
         void submitranks(const AllRankings& ranks);
 
         // Circle-related actions
-        void circcreate(const name& circle_account, const name& brand_name) {}
-        void circdelete(const name& circle_account) {}
-        void circinvite(const name& circle_account, const name& invitee) {}
-        void circinvdec(const name& circle_account, const name& invitee) {}
-        void circinvacc(const name& circle_account, const name& invitee) {}
-        void circleave(const name& circle_account, const name& member) {}
+        void circcreate(const name& circle_account, const name& brand_name);
+        void circdelete(const name& circle_account);
+        void circinvite(const name& circle_account, const name& invitee);
+        void circinvdec(const name& circle_account, const name& invitee);
+        void circinvacc(const name& circle_account, const name& invitee);
+        void circleave(const name& circle_account, const name& member);
+        void circmaxsize(uint8_t max_circle_size);
+        void circchngtime(uint32_t circle_change_wait_time_sec);
 
         // Tester/contract interface to simplify token queries
         static asset get_supply(const symbol_code& sym_code)
@@ -121,6 +127,8 @@ namespace eden_fractal {
         void validate_symbol(const symbol& symbol);
 
         void require_admin_auth();
+
+        bool user_has_outstanding_wait(const eosio::name& member);
     };
 
     // clang-format off
@@ -148,6 +156,8 @@ namespace eden_fractal {
                   action(circinvdec, circle_account, invitee, ricardian_contract(circinvdec_ricardian)),
                   action(circinvacc, circle_account, invitee, ricardian_contract(circinvacc_ricardian)),
                   action(circleave, circle_account, member, ricardian_contract(circleave_ricardian)),
+                  action(circmaxsize, max_circle_size, ricardian_contract(circmaxsize_ricardian)),
+                  action(circchngtime, circle_change_wait_time_sec, ricardian_contract(circchngtime_ricardian)),
 
                   action(eosrewardamt, quantity, ricardian_contract(eosrewardamt_ricardian)),
                   action(fiboffset, offset, ricardian_contract(fiboffset_ricardian)),
