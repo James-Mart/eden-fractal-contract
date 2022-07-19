@@ -114,24 +114,24 @@ SCENARIO("Testing setagreement")
 
         // some shortcuts
         auto alice = t.as("alice"_n);
-        auto dan = t.as("dan"_n);
+        auto self = t.as(eden_fractal::default_contract_account);
 
         THEN("Alice cannot call the setagreement action")
         {
             auto trace = alice.trace<actions::setagreement>("test");
-            CHECK(failedWith(trace, requiresAdmin));
+            CHECK(failedWith(trace, missingRequiredAuth));
         }
 
-        THEN("Dan can call the setagreement action")
+        THEN("Self can call the setagreement action")
         {
-            auto trace = dan.trace<actions::setagreement>("test");
+            auto trace = self.trace<actions::setagreement>("test");
             CHECK(succeeded(trace));
         }
 
-        WHEN("Dan calls the setagreement action")
+        WHEN("Self calls the setagreement action")
         {
             std::string agreementStr = "test";
-            dan.act<actions::setagreement>(agreementStr);
+            self.act<actions::setagreement>(agreementStr);
 
             THEN("The agreement matches what he set")
             {
@@ -154,7 +154,7 @@ SCENARIO("Testing sign and unsign")
 
         // some shortcuts
         auto alice = t.as("alice"_n);
-        auto dan = t.as("dan"_n);
+        auto self = t.as(eden_fractal::default_contract_account);
 
         THEN("Alice cannot sign the agreement before it's added")
         {
@@ -163,7 +163,7 @@ SCENARIO("Testing sign and unsign")
         }
         WHEN("An agreement is added")
         {
-            dan.act<actions::setagreement>("test");
+            self.act<actions::setagreement>("test");
 
             THEN("Alice cannot unsign the agreement before she signs it")
             {
@@ -219,7 +219,6 @@ SCENARIO("Testing token transfers")
 
         // some shortcuts
         auto alice = t.as("alice"_n);
-        auto dan = t.as("dan"_n);
         auto contract = t.as(eden_fractal::default_contract_account);
 
         std::string memo = "memo";
@@ -249,7 +248,7 @@ SCENARIO("Rank submission")
         setup_token(t);
 
         auto alice = t.as("alice"_n);
-        auto dan = t.as("dan"_n);
+        auto self = t.as(eden_fractal::default_contract_account);
 
         // clang-format off
         std::string ranks = 
@@ -279,39 +278,39 @@ SCENARIO("Rank submission")
         t.as("eosio"_n).act<token::actions::issue>("eosio"_n, s2a("1000000.0000 EOS"), "");
         t.as("eosio"_n).act<token::actions::transfer>("eosio"_n, default_contract_account, s2a("10000.0000 EOS"), "");
 
-        THEN("An admin may submit a ranking")
+        THEN("Self may submit a ranking")
         {
-            auto submitRanks = dan.trace<actions::submitranks>(util::from_json<AllRankings>(ranks));
+            auto submitRanks = self.trace<actions::submitranks>(util::from_json<AllRankings>(ranks));
             CHECK(succeeded(submitRanks));
         }
         THEN("A non-admin may not submit a ranking")
         {
             auto submitRanks = alice.trace<actions::submitranks>(util::from_json<AllRankings>(ranks));
-            CHECK(failedWith(submitRanks, requiresAdmin));
+            CHECK(failedWith(submitRanks, missingRequiredAuth));
         }
 
         THEN("A ranking with too few groups cannot be submitted")
         {
             AllRankings ar{{{{"james"_n, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n}}}};
-            auto submitRanks = dan.trace<actions::submitranks>(ar);
+            auto submitRanks = self.trace<actions::submitranks>(ar);
             CHECK(failedWith(submitRanks, too_few_groups));
         }
         THEN("A ranking with a group of too few members cannot be submitted")
         {
             AllRankings ar{{{{"james"_n, "dan"_n, "alice"_n, "bob"_n}}, {{"david"_n, "elaine"_n, "frank"_n, "gary"_n, "harry"_n, "jenny"_n}}}};
-            auto submitRanks = dan.trace<actions::submitranks>(ar);
+            auto submitRanks = self.trace<actions::submitranks>(ar);
             CHECK(failedWith(submitRanks, group_too_small));
         }
         THEN("A ranking with a group of too many memmbers cannot be submitted")
         {
             AllRankings ar{{{{"james"_n, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n, "kathy"_n}}, {{"david"_n, "elaine"_n, "frank"_n, "gary"_n, "harry"_n, "jenny"_n}}}};
-            auto submitRanks = dan.trace<actions::submitranks>(ar);
+            auto submitRanks = self.trace<actions::submitranks>(ar);
             CHECK(failedWith(submitRanks, group_too_large));
         }
         THEN("A ranking with two groups that share a person cannot be submitted")
         {
             AllRankings ar{{{{"james"_n, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n}}, {{"james"_n, "elaine"_n, "frank"_n, "gary"_n, "harry"_n, "jenny"_n}}}};
-            auto submitRanks = dan.trace<actions::submitranks>(ar);
+            auto submitRanks = self.trace<actions::submitranks>(ar);
             CHECK(failed(submitRanks));  // Error message is dynamic
         }
     }
@@ -327,7 +326,7 @@ SCENARIO("Reward distribution")
         setup_createAccounts(t);
         setup_token(t);
 
-        auto dan = t.as("dan"_n);
+        auto self = t.as(eden_fractal::default_contract_account);
 
         // Give the eden fractal some EOS
         t.as("eosio"_n).act<token::actions::issue>("eosio"_n, s2a("1000000.0000 EOS"), "");
@@ -364,7 +363,7 @@ SCENARIO("Reward distribution")
         }
         WHEN("The ranking is submitted and James is rank 1")
         {
-            dan.act<actions::submitranks>(ranks);
+            self.act<actions::submitranks>(ranks);
             THEN("James has 5 EDEN")
             {
                 CHECK(getJamesEden() == s2a("5.0000 EDEN").amount);
@@ -383,12 +382,12 @@ SCENARIO("Reward distribution")
 
         WHEN("EOS reward changes to 200")
         {
-            auto changeReward = dan.trace<actions::eosrewardamt>(s2a("200.0000 EOS"));
+            auto changeReward = self.trace<actions::eosrewardamt>(s2a("200.0000 EOS"));
             CHECK(succeeded(changeReward));
 
             AND_WHEN("The ranking is submitted and James is rank 1")
             {
-                dan.act<actions::submitranks>(ranks);
+                self.act<actions::submitranks>(ranks);
                 THEN("James has 5 EDEN")
                 {  //
                     CHECK(getJamesEden() == s2a("5.0000 EDEN").amount);
@@ -402,11 +401,11 @@ SCENARIO("Reward distribution")
         }
         WHEN("The fib offset is changed to 6")
         {
-            auto setFibOffset = dan.trace<actions::fiboffset>(6);
+            auto setFibOffset = self.trace<actions::fiboffset>(6);
             CHECK(succeeded(setFibOffset));
             AND_WHEN("The ranking is submitted and James is rank 1")
             {
-                dan.act<actions::submitranks>(ranks);
+                self.act<actions::submitranks>(ranks);
 
                 THEN("James has 8 EDEN")
                 {
@@ -433,16 +432,24 @@ SCENARIO("Setting reward and fib offset")
         setup_token(t);
 
         auto alice = t.as("alice"_n);
+        auto oldAdmin = t.as("dan"_n);
 
         THEN("Alice cannot change the fib offset")
         {
             auto trace = alice.trace<actions::fiboffset>(8);
-            CHECK(failedWith(trace, requiresAdmin));
+            CHECK(failedWith(trace, missingRequiredAuth));
         }
         THEN("Alice cannot change the EOS reward amount")
         {
             auto trace = alice.trace<actions::eosrewardamt>(s2a("2000.0000 EOS"));
-            CHECK(failedWith(trace, requiresAdmin));
+            CHECK(failedWith(trace, missingRequiredAuth));
+        }
+        THEN("Initial admin accounts cannot change the fib offset or EOS reward amount anymore")
+        {
+            auto trace = oldAdmin.trace<actions::fiboffset>(8);
+            CHECK(failedWith(trace, missingRequiredAuth));
+            trace = oldAdmin.trace<actions::eosrewardamt>(s2a("2000.0000 EOS"));
+            CHECK(failedWith(trace, missingRequiredAuth));
         }
     }
 }
