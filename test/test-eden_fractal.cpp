@@ -453,3 +453,94 @@ SCENARIO("Setting reward and fib offset")
         }
     }
 }
+
+SCENARIO("Testing start of an election")
+{
+    GIVEN("Standard chain setup")
+    {
+        test_chain t;
+        setup_installMyContract(t);
+        setup_createAccounts(t);
+
+        auto alice = t.as("alice"_n);
+        auto oldAdmin = t.as("dan"_n);
+
+        auto electionSingleton = fractal_contract::ElectionCountSingleton(default_contract_account, default_contract_account.value);
+        auto election = electionSingleton.get_or_default();
+
+        THEN("Alice cannot call the startelect action")
+        {
+            auto trace = alice.trace<actions::startelect>();
+            CHECK(failedWith(trace, requiresAdmin));
+        }
+
+        THEN("Admin can call the startelect action")
+        {
+            auto trace = oldAdmin.trace<actions::startelect>();
+            CHECK(succeeded(trace));
+        }
+
+        WHEN("Admin calls the startelect action")
+        {
+            oldAdmin.trace<actions::startelect>();
+
+            THEN("Then election nr is incremented by 1 and election start time is set to current time point")
+            {
+                auto electionSingleton = fractal_contract::ElectionCountSingleton(default_contract_account, default_contract_account.value);
+                auto newelection = electionSingleton.get_or_default();
+
+                CHECK(election.electionNr + 1 == newelection.electionNr);
+
+                //When invoking current_time_point it gives -> undefined symbol: eosio::current_time_point()
+                CHECK(election.starttime < newelection.starttime);
+            }
+        }
+    }
+}
+
+SCENARIO("Consensus submission")
+{
+    GIVEN("Standard setup,a user has consensus to submit")
+    {
+        test_chain t;
+        setup_installMyContract(t);
+        setup_createAccounts(t);
+
+        auto alice = t.as("alice"_n);
+        auto oldAdmin = t.as("dan"_n);
+        auto groupnr = 1;
+        const vector<name> consensus{"james"_n, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n};
+
+        THEN("Alice may submit a ranking, election started")
+        {
+            auto startElection = oldAdmin.trace<actions::startelect>();
+
+            auto submitConse = alice.trace<actions::submitcons>(groupnr, consensus, "alice"_n);
+            CHECK(succeeded(submitConse));
+        }
+
+        THEN("Alice submits ranking but election not started")
+        {
+            auto submitConse = alice.trace<actions::submitcons>(groupnr, consensus, "alice"_n);
+            CHECK(failedWith(submitConse, electionEnded));
+        }
+        WHEN("Admin calls the startelect action")
+        {
+            oldAdmin.trace<actions::startelect>();
+
+            THEN("Consensus with too few accounts cannot be submitted")
+            {
+                const vector<name> conslow{"james"_n, "dan"_n, "alice"_n};
+                auto submitConse = alice.trace<actions::submitcons>(groupnr, conslow, "alice"_n);
+                CHECK(failedWith(submitConse, group_too_small));
+            }
+
+            THEN("Consensus with too many accounts cannot be submitted")
+            {
+                const vector<name> consmany{"james"_n, "dan"_n, "alice"_n, "bob"_n, "charlie"_n, "igor"_n, "kathy"_n};
+                auto submitConse = alice.trace<actions::submitcons>(groupnr, consmany, "alice"_n);
+                CHECK(failedWith(submitConse, group_too_large));
+            }
+        }
+    }
+}

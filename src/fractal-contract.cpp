@@ -284,7 +284,7 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
 
     check(is_account(submitter), "Submitter's account does not exist.");
 
-     for (size_t i = 0; i < rankings.size(); i++)
+     for (size_t i = 0; i < rankings.size(); i++)
     {
         std::string rankname = rankings[i].to_string();
 
@@ -296,7 +296,7 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
     ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
     auto serks = singleton.get_or_default(defaultElectionInf);
 
-    check(serks.starttime + eleclimit > current_time_point(), "Election has ended.");
+    check(serks.starttime + eleclimit > current_time_point(), electionEnded.data());
 
     ConsenzusTable table(default_contract_account, serks.electionNr);
 
