@@ -7,6 +7,7 @@ namespace eden_fractal {
 
         // Consensus submission-related
         constexpr std::string_view noElections = "No eletions have happened yet.";
+        constexpr std::string_view electionEnded = "Election has ended.";
 
         // Agreement-related
         constexpr std::string_view requiresAdmin = "Action requires admin authority. Admins: Dan Singjoy, Joshua Seymour, Chuck Macdonald.";
