@@ -284,8 +284,7 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
 
     check(is_account(submitter), "Submitter's account does not exist.");
 
-     for (size_t i = 0; i < rankings.size(); i++)
-    {
+    for (size_t i = 0; i < rankings.size(); i++) {
         std::string rankname = rankings[i].to_string();
 
         check(is_account(rankings[i]), rankname + " account does not exist.");
