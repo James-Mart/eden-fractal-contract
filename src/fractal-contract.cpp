@@ -26,8 +26,8 @@ namespace {
     constexpr auto min_group_size = size_t{5};
     constexpr auto max_group_size = size_t{6};
 
-    constexpr std::string_view edenTransferMemo = "Eden fractal respect distribution";
-    constexpr std::string_view eosTransferMemo = "Eden fractal participation $EOS reward";
+    constexpr std::string_view edenTransferMemo = "AW fractal respect distribution";
+    constexpr std::string_view eosTransferMemo = "AW fractal participation $TLM reward";
 
     // Coefficients of 6th order poly where p is phi (ratio between adjacent fibonacci numbers)
     // xp^0 + xp^1 ...
@@ -264,7 +264,7 @@ void fractal_contract::submitranks(const AllRankings& ranks)
             // Distribute EOS
             check(eosRewards.size() > rankIndex, "Shouldn't happen.");  // Indicates that the group is too large, but we already check for that?
             auto eosQuantity = asset{eosRewards[rankIndex], eos_symbol};
-            token::actions::transfer{"eosio.token"_n, {get_self(), "active"_n}}.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
+            token::actions::transfer{"alien.worlds"_n, {get_self(), "active"_n}}.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
 
             ++rankIndex;
         }
