@@ -33,15 +33,15 @@ namespace eden_fractal {
     extern const char* open_ricardian;
     extern const char* close_ricardian;
 
-    extern const char* eosrewardamt_ricardian;
+    //extern const char* eosrewardamt_ricardian;
     extern const char* fiboffset_ricardian;
     extern const char* submitranks_ricardian;
 
     // The account at which this contract is deployed
-    inline constexpr auto default_contract_account = "eden.fractal"_n;
+    inline constexpr auto default_contract_account = "fractal.moon"_n;
 
-    constexpr std::string_view eden_ticker{"EDEN"};
-    constexpr symbol eos_symbol{"EOS", 4};
+    constexpr std::string_view eden_ticker{"FRACTAL"};
+    //constexpr symbol eos_symbol{"EOS", 4};
     constexpr symbol eden_symbol{eden_ticker, 4};
 
     class fractal_contract : public contract {
@@ -78,7 +78,7 @@ namespace eden_fractal {
         void close(const name& owner, const symbol& symbol);
 
         // Ranking-related actions (may only be called by admins)
-        void eosrewardamt(const asset& quantity);
+        //void eosrewardamt(const asset& quantity);
         void fiboffset(uint8_t offset);
         void submitranks(const AllRankings& ranks);
 
@@ -126,7 +126,7 @@ namespace eden_fractal {
                   action(open, owner, symbol, ram_payer, ricardian_contract(open_ricardian)),
                   action(close, owner, symbol, ricardian_contract(close_ricardian)),
 
-                  action(eosrewardamt, quantity, ricardian_contract(eosrewardamt_ricardian)),
+                  //action(eosrewardamt, quantity, ricardian_contract(eosrewardamt_ricardian)),
                   action(fiboffset, offset, ricardian_contract(fiboffset_ricardian)),
                   action(submitranks, ranks, ricardian_contract(submitranks_ricardian))
                   

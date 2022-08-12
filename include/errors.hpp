@@ -10,7 +10,7 @@ namespace eden_fractal {
         constexpr std::string_view electionEnded = "Election has ended.";
 
         // Agreement-related
-        constexpr std::string_view requiresAdmin = "Action requires admin authority. Admins: Dan Singjoy, Joshua Seymour, Chuck Macdonald.";
+        constexpr std::string_view requiresAdmin = "Action requires admin authority. Admins: Duane.";
         constexpr std::string_view alreadySigned = "You already signed the agreement";
         constexpr std::string_view noAgreement = "No agreement has been added yet";
         constexpr std::string_view notSigned = "You haven't signed this agreement. Nothing to unsign";

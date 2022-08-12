@@ -14,7 +14,7 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n};
+    const vector<name> admins{"dphillippi33"_n};
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
 
@@ -26,8 +26,8 @@ namespace {
     constexpr auto min_group_size = size_t{5};
     constexpr auto max_group_size = size_t{6};
 
-    constexpr std::string_view edenTransferMemo = "AW fractal respect distribution";
-    constexpr std::string_view eosTransferMemo = "AW fractal participation $TLM reward";
+    constexpr std::string_view edenTransferMemo = "FRACTAL token distribution";
+    //constexpr std::string_view eosTransferMemo = "AW fractal participation $TLM reward";
 
     // Coefficients of 6th order poly where p is phi (ratio between adjacent fibonacci numbers)
     // xp^0 + xp^1 ...
@@ -86,8 +86,8 @@ void fractal_contract::unsign(const name& signer)
 
 void fractal_contract::create()
 {
-    // Anyone is allows to call this action.
-    // It can only be called once.
+    require_auth(get_self());
+
     auto new_asset = asset{max_supply, eden_symbol};
 
     auto sym = new_asset.symbol;
@@ -144,7 +144,7 @@ void fractal_contract::retire(const asset& quantity, const string& memo)
 
 void fractal_contract::transfer(const name& from, const name& to, const asset& quantity, const string& memo)
 {
-    check(from == get_self(), untradeable.data());
+    //check(from == get_self(), untradeable.data());
     require_auth(from);
 
     validate_symbol(quantity.symbol);
@@ -187,6 +187,7 @@ void fractal_contract::close(const name& owner, const symbol& symbol)
     acnts.erase(it);
 }
 
+/*
 void fractal_contract::eosrewardamt(const asset& quantity)
 {
     require_auth(get_self());
@@ -200,6 +201,7 @@ void fractal_contract::eosrewardamt(const asset& quantity)
     record.eos_reward_amt = quantity.amount;
     rewardConfigTable.set(record, get_self());
 }
+*/
 
 void fractal_contract::fiboffset(uint8_t offset)
 {
@@ -257,15 +259,16 @@ void fractal_contract::submitranks(const AllRankings& ranks)
             //   Eden tokens should be added/subbed from balances directly (without calling transfer)
             //   and EOS distribution should be stored, and then accounts can claim the EOS themselves.
 
-            // Distribute EDEN
+            // Distribute FRACTAL
             actions::issue(get_self(), {get_self(), "active"_n}).send(get_self(), edenQuantity, "Mint new Eden tokens");
             actions::transfer(get_self(), {get_self(), "active"_n}).send(get_self(), acc, edenQuantity, edenTransferMemo.data());
 
+            /*
             // Distribute EOS
             check(eosRewards.size() > rankIndex, "Shouldn't happen.");  // Indicates that the group is too large, but we already check for that?
             auto eosQuantity = asset{eosRewards[rankIndex], eos_symbol};
             token::actions::transfer{"alien.worlds"_n, {get_self(), "active"_n}}.send(get_self(), acc, eosQuantity, eosTransferMemo.data());
-
+*/
             ++rankIndex;
         }
     }

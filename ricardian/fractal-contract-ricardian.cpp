@@ -39,10 +39,11 @@ Allows `ram_payer` to pay to create an account `owner` with zero balance for tok
 const char* eden_fractal::close_ricardian = R"(
 The opposite for open, it closes the account `owner` (balance must be 0).
 )";
-
+/*
 const char* eden_fractal::eosrewardamt_ricardian = R"(
 Only callable by an admin. Sets the total amount of EOS used for distributions after meetings.
 )";
+*/
 const char* eden_fractal::fiboffset_ricardian = R"(
 Only callable by an admin. Sets the 0-based index of the fibonacci sequence used for native token distribution to rank 1 
 (e.g. if offset = 5, rank 1 members will be allocated 8 new tokens)
