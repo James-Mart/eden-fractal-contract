@@ -8,6 +8,10 @@ const char* eden_fractal::submitcons_ricardian = R"(
 This action enables participants of election to submit rankings of their group members.
 )";
 
+const char* eden_fractal::submitcons_ricardian = R"(
+This action enables participants of elect delegate into the council.
+)";
+
 const char* eden_fractal::startelect_ricardian = R"(
 Only callable by an admin. This action increments the election number and sets timer for the election.)";
 

@@ -26,29 +26,15 @@ namespace eden_fractal {
     };
     EOSIO_REFLECT(ElectionInf, electionNr, starttime);
 
-    /*
+    struct Delegates {
+        uint64_t groupNr;
+        eosio::name elector;
+        eosio::name delegate;
 
-    struct Consensus {
-        results results0;
-        uint64_t electionNr;
-
-        uint64_t primary_key() const { return electionNr; }
+        uint64_t primary_key() const { return elector.value; }
     };
-    EOSIO_REFLECT(Consensus, results, electionNr);
+    EOSIO_REFLECT(Delegates, groupNr, elector, delegate);
 
-    struct results {
-        std::vector<eosio::name> rankings;
-        eosio::name submitter;
-    };
-    EOSIO_REFLECT(results, rankings, submitter);
-
-    struct ElectionInf {
-        uint8_t electionNr;
-        time_point_sec electionstart;
-    };
-    EOSIO_REFLECT(ElectionNr, electionNr, electionstart);
-
-*/
     // Agreement-related
     struct Agreement {
         std::string agreement;

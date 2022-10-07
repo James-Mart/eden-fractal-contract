@@ -18,6 +18,8 @@ namespace {
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
 
+    const uint64_t councileraser = 5;
+
     const auto defaultElectionInf = ElectionInf{.electionNr = (uint64_t)0, .starttime = (time_point_sec)10};
     const auto eleclimit = seconds(7200);
 
@@ -308,6 +310,42 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
     }
     else {
         check(false, "You can vote only once my friend.");
+    }
+}
+
+void fractal_contract::electdeleg(const name& elector, const name& delegate, const uint64_t& groupnr)
+{
+    require_auth(elector);
+
+    check(is_account(elector), "Elector's account does not exist.");
+    check(is_account(delegate), "Delegate's account does not exist.");
+
+    ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
+    auto serks = singleton.get_or_default(defaultElectionInf);
+
+    check(serks.starttime + eleclimit > current_time_point(), electionEnded.data());
+
+    DelegatesTable table(default_contract_account, serks.electionNr);
+
+    if (table.find(elector.value) == table.end()) {
+        table.emplace(elector, [&](auto& row) {
+            row.elector = elector;
+            row.delegate = delegate;
+            row.groupNr = groupnr;
+        });
+    }
+    else {
+        check(false, "You can only pick one delegate per election my friend.");
+    }
+
+    const uint64_t expiredcouncil = serks.electionNr - councileraser;
+
+    DelegatesTable tablesec(default_contract_account, expiredcouncil);
+
+    for (auto iter = tablesec.begin(); iter != tablesec.end();)
+
+    {
+        tablesec.erase(iter++);
     }
 }
 

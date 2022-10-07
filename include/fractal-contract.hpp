@@ -55,6 +55,7 @@ namespace eden_fractal {
         using RewardConfigSingleton = eosio::singleton<"rewardconf"_n, RewardConfig>;
 
         using ConsenzusTable = eosio::multi_index<"consenzus"_n, Consenzus, indexed_by<"bygroupnr"_n, const_mem_fun<Consenzus, uint64_t, &Consenzus::get_secondary_1>>>;
+        using DelegatesTable = eosio::multi_index<"delegates"_n, Delegates>;
 
         using ElectionCountSingleton = eosio::singleton<"electioninf"_n, ElectionInf>;
 
@@ -63,6 +64,7 @@ namespace eden_fractal {
         // Consensus sumbission-related actions
         void startelect();
         void submitcons(const uint64_t& groupnr, const std::vector<name>& rankings, const name& submitter);
+        void electdeleg(const name& elector, const name& delegate, const uint64_t& groupnr);
 
         // Agreement-related actions
         void setagreement(const std::string& agreement);
@@ -113,6 +115,7 @@ namespace eden_fractal {
 
                   action(startelect, ricardian_contract(startelect_ricardian)),
                   action(submitcons, groupnr, rankings, submitter, ricardian_contract(submitcons_ricardian)),
+                  action(electdeleg, elector, delegate, groupnr, ricardian_contract(submitcons_ricardian)),
 
 
                   action(setagreement, ricardian_contract(setagreement_ricardian)),
