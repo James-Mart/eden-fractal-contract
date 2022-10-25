@@ -8,7 +8,7 @@ const char* eden_fractal::submitcons_ricardian = R"(
 This action enables participants of election to submit rankings of their group members.
 )";
 
-const char* eden_fractal::submitcons_ricardian = R"(
+const char* eden_fractal::electdeleg_ricardian = R"(
 This action enables participants of elect delegate into the council.
 )";
 

@@ -14,7 +14,7 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n};
+    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n, "immortal444"_n};
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
 
@@ -320,8 +320,14 @@ void fractal_contract::electdeleg(const name& elector, const name& delegate, con
     check(is_account(elector), "Elector's account does not exist.");
     check(is_account(delegate), "Delegate's account does not exist.");
 
+    /*
     ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
     auto serks = singleton.get_or_default(defaultElectionInf);
+*/
+    ElectionCountSingleton singleton(official_contract_account, official_contract_account.value);
+    auto serks = singleton.get_or_default(defaultElectionInf);
+
+    //check(false, serks.electionNr);
 
     check(serks.starttime + eleclimit > current_time_point(), electionEnded.data());
 
@@ -420,6 +426,7 @@ EOSIO_ABIGEN(actions(eden_fractal::actions),
 
     table("rewardconf"_n, eden_fractal::RewardConfig),
 
+    table("delegates"_n, eden_fractal::Delegates),
     table("consenzus"_n, eden_fractal::Consenzus),
     table("electioninf"_n, eden_fractal::ElectionInf),
 

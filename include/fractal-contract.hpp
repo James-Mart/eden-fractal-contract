@@ -19,6 +19,7 @@ namespace eden_fractal {
     // Ricardian contracts live in ricardian/fractal_contract-ricardian.cpp
     extern const char* ricardian_clause;
 
+    extern const char* electdeleg_ricardian;
     extern const char* submitcons_ricardian;
     extern const char* startelect_ricardian;
 
@@ -38,7 +39,8 @@ namespace eden_fractal {
     extern const char* submitranks_ricardian;
 
     // The account at which this contract is deployed
-    inline constexpr auto default_contract_account = "eden.fractal"_n;
+    inline constexpr auto default_contract_account = "edenfractest"_n;
+    inline constexpr auto official_contract_account = "eden.fractal"_n;
 
     constexpr std::string_view eden_ticker{"EDEN"};
     constexpr symbol eos_symbol{"EOS", 4};
@@ -115,7 +117,7 @@ namespace eden_fractal {
 
                   action(startelect, ricardian_contract(startelect_ricardian)),
                   action(submitcons, groupnr, rankings, submitter, ricardian_contract(submitcons_ricardian)),
-                  action(electdeleg, elector, delegate, groupnr, ricardian_contract(submitcons_ricardian)),
+                  action(electdeleg, elector, delegate, groupnr, ricardian_contract(electdeleg_ricardian)),
 
 
                   action(setagreement, ricardian_contract(setagreement_ricardian)),
