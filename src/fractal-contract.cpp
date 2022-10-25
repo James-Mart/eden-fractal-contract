@@ -14,7 +14,7 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n, "immortal444"_n};
+    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n, "immortal4444"_n};
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
 
