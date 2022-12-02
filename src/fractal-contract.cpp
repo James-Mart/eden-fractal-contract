@@ -14,11 +14,12 @@ using namespace eden_fractal::errors;
 namespace {
 
     // Some compile-time configuration
-    const vector<name> admins{"dan"_n, "jseymour.gm"_n, "chkmacdonald"_n, "james.vr"_n, "vladislav.x"_n, "immortal4444"_n};
+    const vector<name> admins{"vladislav.x"_n, "dan"_n, "mschoenebeck"_n};
 
     constexpr int64_t max_supply = static_cast<int64_t>(1'000'000'000e4);
 
-    const uint64_t councileraser = 5;
+    //In case we'd like to delete not active delegates.
+    //const uint64_t councileraser = 5;
 
     const auto defaultElectionInf = ElectionInf{.electionNr = (uint64_t)0, .starttime = (time_point_sec)10};
     const auto eleclimit = seconds(7200);
@@ -28,8 +29,8 @@ namespace {
     constexpr auto min_group_size = size_t{5};
     constexpr auto max_group_size = size_t{6};
 
-    constexpr std::string_view edenTransferMemo = "Eden fractal respect distribution";
-    constexpr std::string_view eosTransferMemo = "Eden fractal participation $EOS reward";
+    constexpr std::string_view edenTransferMemo = "Zeos fractal respect distribution";
+    constexpr std::string_view eosTransferMemo = "Zeos fractal participation $ZEOS reward";
 
     // Coefficients of 6th order poly where p is phi (ratio between adjacent fibonacci numbers)
     // xp^0 + xp^1 ...
@@ -281,7 +282,7 @@ void fractal_contract::submitcons(const uint64_t& groupnr, const std::vector<nam
 
     size_t group_size = rankings.size();
 
-    check(group_size >= min_group_size, group_too_small.data());
+    //check(group_size >= min_group_size, group_too_small.data());
     check(group_size <= max_group_size, group_too_large.data());
 
     check(is_account(submitter), "Submitter's account does not exist.");
@@ -324,7 +325,7 @@ void fractal_contract::electdeleg(const name& elector, const name& delegate, con
     ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
     auto serks = singleton.get_or_default(defaultElectionInf);
 */
-    ElectionCountSingleton singleton(official_contract_account, official_contract_account.value);
+    ElectionCountSingleton singleton(default_contract_account, default_contract_account.value);
     auto serks = singleton.get_or_default(defaultElectionInf);
 
     //check(false, serks.electionNr);
@@ -343,7 +344,7 @@ void fractal_contract::electdeleg(const name& elector, const name& delegate, con
     else {
         check(false, "You can only pick one delegate per election my friend.");
     }
-
+    /* IN CASE WE'D LIKE TO DELETE COUNCIL MEMBERS ONCE THEY ARE NO LONGER ACTIVE
     const uint64_t expiredcouncil = serks.electionNr - councileraser;
 
     DelegatesTable tablesec(default_contract_account, expiredcouncil);
@@ -353,6 +354,7 @@ void fractal_contract::electdeleg(const name& elector, const name& delegate, con
     {
         tablesec.erase(iter++);
     }
+*/
 }
 
 void fractal_contract::startelect()
